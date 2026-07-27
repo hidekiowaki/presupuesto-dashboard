@@ -237,13 +237,21 @@
   .monthly-table td.over .cell-real { color: var(--status-crit); }
 
   .monthly-scroll {
-    overflow-x: auto; overflow-y: visible; padding-bottom: 10px;
+    overflow-y: auto; overflow-x: hidden; max-height: 62vh; padding-bottom: 4px;
     scrollbar-width: auto; scrollbar-color: var(--baseline) var(--surface-2);
   }
-  .monthly-scroll::-webkit-scrollbar { height: 14px; }
+  .monthly-scroll::-webkit-scrollbar { height: 14px; width: 14px; }
   .monthly-scroll::-webkit-scrollbar-track { background: var(--surface-2); border-radius: 7px; }
   .monthly-scroll::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 7px; border: 3px solid var(--surface-2); }
   .monthly-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  .monthly-table-scroll {
+    overflow-x: auto; overflow-y: hidden; padding-bottom: 8px;
+    scrollbar-width: auto; scrollbar-color: var(--baseline) var(--surface-2);
+  }
+  .monthly-table-scroll::-webkit-scrollbar { height: 13px; }
+  .monthly-table-scroll::-webkit-scrollbar-track { background: var(--surface-2); border-radius: 7px; }
+  .monthly-table-scroll::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 7px; border: 3px solid var(--surface-2); }
+  .monthly-table-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
   .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
   #theme-toggle { white-space: nowrap; flex-shrink: 0; }
@@ -544,7 +552,7 @@
 
     <div class="panel" id="panel-monthly" style="display:none;">
       <h2>Comparativo Mensual (Real vs Presupuesto)</h2>
-      <p class="hint" style="margin-top:0;">Agrupado por Tipo — click en un grupo para expandir/contraer. Cada celda muestra Real / Presupuesto. Usa la barra de abajo (o desliza) para ver más meses →</p>
+      <p class="hint" style="margin-top:0;">Agrupado por Tipo — click en un grupo para expandir/contraer. Cada celda muestra Real / Presupuesto. <strong>Cada grupo tiene su propia barra debajo</strong> para deslizarte y ver más meses → (o mantén <strong>Shift</strong> y usa la rueda del mouse).</p>
       <div class="monthly-scroll" id="monthly-wrap"></div>
     </div>
 
@@ -1643,6 +1651,7 @@
     Object.keys(catsByTipo).sort().forEach(function (tipo) {
       var cats = Array.from(catsByTipo[tipo]).sort();
       html += '<details class="monthly-group" open><summary>' + tipo + '</summary>';
+      html += '<div class="monthly-table-scroll">';
       html += '<table class="monthly-table"><thead><tr><th>Categoría</th>' +
         shown.map(function (m) { return '<th>' + m.mes + ' ' + m.anio + '</th>'; }).join('') + '</tr></thead><tbody>';
       cats.forEach(function (cat) {
@@ -1654,7 +1663,7 @@
           return '<td class="' + overCls.trim() + '"><div class="cell-real">' + fmt(real) + '</div><div class="cell-budget">de ' + fmt(presupuesto) + '</div></td>';
         }).join('') + '</tr>';
       });
-      html += '</tbody></table></details>';
+      html += '</tbody></table></div></details>';
     });
     wrap.innerHTML = html || '<p class="hint">Sin datos de presupuesto para mostrar.</p>';
   }
