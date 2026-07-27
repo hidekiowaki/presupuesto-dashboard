@@ -342,6 +342,8 @@
   .explorer-stat b { display: block; color: var(--text-primary); font-size: 0.98rem; font-variant-numeric: tabular-nums; margin-top: 2px; }
   .explorer-stat small { color: var(--text-muted); font-weight: 400; }
   #table-cat-detail td:nth-child(3), #table-buscador td:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
+  .data-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  #data-panel { padding: 12px 22px; }
 </style>
 
 <div class="viz-root">
@@ -349,28 +351,30 @@
     <div>
       <h1>Presupuesto Personal</h1>
       <p class="subtitle">Dashboard construido a partir de tu hoja "BD I&amp;E". Ningún dato sale de tu navegador.</p>
+      <div id="last-update" class="hint" style="margin:0;"></div>
     </div>
-    <button type="button" class="secondary" id="theme-toggle">🌙 Modo oscuro</button>
+    <div style="display:flex; gap:8px; flex-shrink:0;">
+      <button type="button" class="secondary" id="toggle-data-panel" title="Datos / actualizar">⚙</button>
+      <button type="button" class="secondary" id="theme-toggle">🌙 Modo oscuro</button>
+    </div>
   </div>
 
-  <div class="panel">
-    <h2>Cargar datos</h2>
-    <div class="load-row">
-      <label class="file-btn" for="csv-input">📂 Cargar CSV (BD I&amp;E)</label>
-      <input type="file" id="csv-input" accept=".csv" />
-      <input type="text" id="url-input" placeholder="o pega aquí el link de un CSV publicado en la Web (opcional)" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSv_A7_-vPW0z1qpWaJz8ic4He0ajRPle_OZSs5NDhckKWYR_vFFlPutJ4IXz6GhsuSRwjlAYsTJmwj/pub?gid=483317118&amp;single=true&amp;output=csv" />
-      <button id="url-load-btn" class="secondary">Actualizar desde URL</button>
-    </div>
-    <div class="status-line" id="status-line">Sin datos cargados todavía.</div>
-    <p class="hint">El dashboard lee las hojas publicadas <strong>automáticamente al abrir</strong> y se <strong>refresca solo cada 5 minutos</strong> (y cada vez que vuelves a la pestaña). Los botones siguen sirviendo para forzar una actualización manual o para cargar un CSV local. El cálculo siempre se hace en tu navegador; nada se envía a un servidor externo.</p>
-
-    <div class="load-row" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
-      <label class="file-btn" for="budget-csv-input">📂 Cargar CSV (Presupuesto)</label>
-      <input type="file" id="budget-csv-input" accept=".csv" />
-      <input type="text" id="budget-url-input" placeholder="Link CSV de Presupuesto (BD BGT)" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSv_A7_-vPW0z1qpWaJz8ic4He0ajRPle_OZSs5NDhckKWYR_vFFlPutJ4IXz6GhsuSRwjlAYsTJmwj/pub?gid=1630019213&amp;single=true&amp;output=csv" />
-      <button id="budget-load-btn" class="secondary">Actualizar desde URL</button>
-    </div>
-    <div class="status-line" id="budget-status-line">Presupuesto no cargado — habilita las vistas de Real vs Budget y Mensual.</div>
+  <div class="panel" id="data-panel" style="display:none;">
+    <div class="status-line" id="status-line" style="margin-top:0;">Cargando datos…</div>
+    <p class="hint" style="margin-top:8px;">El dashboard lee tus hojas <strong>automáticamente al abrir</strong> y se <strong>refresca solo cada 5 minutos</strong> (y al volver a la pestaña). Usa estos controles solo si quieres forzar una actualización o cargar un CSV suelto. El cálculo siempre se hace en tu navegador.</p>
+      <div class="load-row">
+        <label class="file-btn" for="csv-input">📂 Cargar CSV (BD I&amp;E)</label>
+        <input type="file" id="csv-input" accept=".csv" />
+        <input type="text" id="url-input" placeholder="o pega aquí el link de un CSV publicado en la Web (opcional)" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSv_A7_-vPW0z1qpWaJz8ic4He0ajRPle_OZSs5NDhckKWYR_vFFlPutJ4IXz6GhsuSRwjlAYsTJmwj/pub?gid=483317118&amp;single=true&amp;output=csv" />
+        <button id="url-load-btn" class="secondary">Actualizar desde URL</button>
+      </div>
+      <div class="load-row" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+        <label class="file-btn" for="budget-csv-input">📂 Cargar CSV (Presupuesto)</label>
+        <input type="file" id="budget-csv-input" accept=".csv" />
+        <input type="text" id="budget-url-input" placeholder="Link CSV de Presupuesto (BD BGT)" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSv_A7_-vPW0z1qpWaJz8ic4He0ajRPle_OZSs5NDhckKWYR_vFFlPutJ4IXz6GhsuSRwjlAYsTJmwj/pub?gid=1630019213&amp;single=true&amp;output=csv" />
+        <button id="budget-load-btn" class="secondary">Actualizar desde URL</button>
+      </div>
+      <div class="status-line" id="budget-status-line">Presupuesto no cargado — habilita las vistas de Real vs Budget y Mensual.</div>
   </div>
 
   <div id="dashboard" style="display:none;">
@@ -947,6 +951,8 @@
     var raw = parseCSV(text);
     rows = normalizeRows(raw);
     statusLine.textContent = rows.length + ' movimientos cargados desde ' + sourceLabel + '. Última actualización: ' + new Date().toLocaleString();
+    var luEl = document.getElementById('last-update');
+    if (luEl) luEl.textContent = '🕒 Datos actualizados: ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
     document.getElementById('empty-state').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     buildFilters();
@@ -2075,6 +2081,11 @@
     if (sel) sel.addEventListener('change', function () { renderCategoryTrend(sel.value); });
     var b = document.getElementById('buscador-input');
     if (b) b.addEventListener('input', renderBuscador);
+    var td = document.getElementById('toggle-data-panel');
+    if (td) td.addEventListener('click', function () {
+      var box = document.getElementById('data-panel');
+      box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+    });
   })();
 })();
 </script>
