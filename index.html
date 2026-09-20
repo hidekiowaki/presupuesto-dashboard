@@ -709,7 +709,10 @@
     var el = document.querySelector('.viz-root');
     var vars = THEME_VARS[mode];
     Object.keys(vars).forEach(function (k) { el.style.setProperty(k, vars[k]); });
-    localStorage.setItem(THEME_KEY, mode);
+    // Fondo en TODA la página (no solo en el contenedor) y scrollbars/controles nativos en el tema correcto
+    document.documentElement.style.background = vars['--surface-2'];
+    document.documentElement.style.colorScheme = mode;
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* localStorage no disponible */ }
     currentThemeMode = mode;
     updateThemeLabel(mode);
     if (rows.length) render();
