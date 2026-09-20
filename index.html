@@ -648,7 +648,7 @@
 <div class="tab-panel" id="tab-explorar" style="display:none;">
       <div class="panel">
         <h2>Comportamiento de una categoría en el tiempo</h2>
-        <p class="hint" style="margin-top:0;">Elige una categoría y mira cómo se ha movido mes a mes en todo tu historial. La línea punteada es tu presupuesto mensual; las barras en rojo son meses donde te pasaste.</p>
+        <p class="hint" style="margin-top:0;">Elige una categoría —o «Todas las categorías» para ver el gasto total (sin ahorro) contra el presupuesto total— y mira cómo se ha movido mes a mes en todo tu historial. La línea punteada es tu presupuesto mensual; las barras en rojo son meses donde te pasaste. El mes en curso está incompleto.</p>
         <div class="explorer-controls">
           <label class="filter-label" style="margin:0;">Categoría:</label>
           <select id="cat-explorer-select"></select>
@@ -658,7 +658,7 @@
           <svg id="chart-cat-trend" viewBox="0 0 900 260"></svg>
           <div class="tooltip" id="tooltip-cat-trend"></div>
         </div>
-        <h2 style="margin-top:20px;">Últimos movimientos de esta categoría</h2>
+        <h2 style="margin-top:20px;">Últimos movimientos de esta selección</h2>
         <div class="table-scroll table-scroll-compact">
           <table id="table-cat-detail">
             <thead><tr><th>Fecha</th><th>Subcategoría</th><th>Importe</th><th>Comentario</th></tr></thead>
@@ -2247,13 +2247,15 @@
   }
 
   // ---------- explorador de categoría en el tiempo ----------
+  var ALL_CATS = '__TODAS__';
   function buildCategorySelect() {
     var sel = document.getElementById('cat-explorer-select');
     if (!sel) return;
     var cats = Array.from(new Set(rows.map(function (r) { return r.categoria; }).filter(Boolean))).sort();
     var current = sel.value;
-    sel.innerHTML = cats.map(function (c) { return '<option>' + c + '</option>'; }).join('');
-    if (cats.indexOf(current) > -1) sel.value = current;
+    sel.innerHTML = '<option value="' + ALL_CATS + '">Todas las categorías (gastos, sin ahorro)</option>' +
+      cats.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+    if (current === ALL_CATS || cats.indexOf(current) > -1) sel.value = current;
     renderCategoryTrend(sel.value);
   }
 
@@ -2265,15 +2267,22 @@
     if (!cat) { svg.innerHTML = ''; statsEl.innerHTML = ''; if (detailBody) detailBody.innerHTML = ''; return; }
 
     var months = allMonthsSorted();
+    var isAll = cat === ALL_CATS;
+    var rowMatch = isAll
+      ? function (r) { return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo'; }
+      : function (r) { return r.categoria === cat; };
+    var budMatch = isAll
+      ? function (b) { return tipoLado(b.tipo) === 'Gastos' && tipoBucket(b.tipo) !== 'ahorroActivo'; }
+      : function (b) { return b.categoria === cat; };
     var realByKey = {}, budByKey = {};
     rows.forEach(function (r) {
-      if (r.categoria !== cat) return;
+      if (!rowMatch(r)) return;
       var n = parseInt(r.mes, 10); if (!n) return;
       var k = parseInt(r.anio, 10) * 100 + n;
       realByKey[k] = (realByKey[k] || 0) + Math.abs(r.importe);
     });
     budgetRows.forEach(function (b) {
-      if (b.categoria !== cat) return;
+      if (!budMatch(b)) return;
       var n = parseInt(b.mes, 10); if (!n) return;
       var k = parseInt(b.anio, 10) * 100 + n;
       budByKey[k] = (budByKey[k] || 0) + Math.abs(b.presupuesto);
@@ -2326,6 +2335,15 @@
       rect.addEventListener('mouseleave', function () { tip.style.opacity = '0'; });
     });
 
+    var catTipTimer = null;
+    svg.querySelectorAll('.cat-bar').forEach(function (rect) {
+      rect.addEventListener('click', function (evt) {
+        rect.dispatchEvent(new MouseEvent('mousemove', { clientX: evt.clientX, clientY: evt.clientY, bubbles: true }));
+        clearTimeout(catTipTimer);
+        catTipTimer = setTimeout(function () { tip.style.opacity = '0'; }, 2500);
+      });
+    });
+
     var withReal = series.filter(function (s) { return s.real > 0; });
     var avg = withReal.length ? withReal.reduce(function (a, s) { return a + s.real; }, 0) / withReal.length : 0;
     var maxM = series.reduce(function (a, s) { return s.real > a.real ? s : a; }, { real: -1, label: '—' });
@@ -2338,11 +2356,11 @@
       (hasBudget ? stat('Meses sobre presupuesto', String(overM)) : '');
 
     if (detailBody) {
-      var movs = rows.filter(function (r) { return r.categoria === cat; }).slice()
+      var movs = rows.filter(rowMatch).slice()
         .sort(function (a, b) { return (b.fecha || 0) - (a.fecha || 0); }).slice(0, 10);
       detailBody.innerHTML = movs.map(function (r) {
-        return '<tr><td>' + (r.fecha ? r.fecha.toLocaleDateString('es-PE') : '—') + '</td><td>' + r.subcategoria +
-          '</td><td>' + fmt(r.importe) + '</td><td>' + r.comentario + '</td></tr>';
+        return '<tr><td>' + (r.fecha ? r.fecha.toLocaleDateString('es-PE') : '—') + '</td><td>' + esc(r.subcategoria) +
+          '</td><td>' + fmt(r.importe) + '</td><td>' + esc(r.comentario) + '</td></tr>';
       }).join('') || '<tr><td colspan="4">Sin movimientos.</td></tr>';
     }
   }
