@@ -352,6 +352,19 @@
   #table-cat-detail td:nth-child(3), #table-buscador td:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
   .data-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   #data-panel { padding: 12px 22px; }
+
+/* ---- ajustes Resumen Ejecutivo ---- */
+#last-update { color: var(--text-muted); font-size: 0.78rem; }
+.info-tip { margin: 0 0 10px; }
+.info-tip summary { cursor: pointer; font-size: 0.78rem; color: var(--series-pos); list-style: none; display: inline-block; }
+.info-tip summary::-webkit-details-marker { display: none; }
+.info-tip .hint { margin-top: 6px; }
+.glance-list { max-height: none; overflow: visible; padding-right: 0; }
+.glance-list .view-toggle { align-self: flex-start; }
+.glance-track { position: relative; }
+.glance-pace { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text-primary); opacity: 0.6; }
+.gauge-label { white-space: pre-line; text-align: center; }
+.trend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
 </style>
 
 <div class="viz-root">
@@ -436,14 +449,16 @@
     <div class="tab-panel" id="tab-resumen">
       <div class="panel">
         <h2>Vistazo rápido — estado del presupuesto <span id="glance-month-label" class="hint" style="margin:0;"></span></h2>
-        <p class="hint" style="margin-top:0;">Por defecto muestra el <strong>mes más reciente</strong>. Usa el filtro <strong>Mes</strong> para cambiar de mes o comparar varios. La barra es el presupuesto consumido: <span style="color:var(--status-crit);font-weight:700;">rojo</span> = te pasaste · <span style="color:var(--status-warn);font-weight:700;">ámbar</span> = cerca del límite · <span style="color:var(--status-good);font-weight:700;">verde</span> = aún tienes margen.</p>
+        <details class="info-tip"><summary>ⓘ Cómo leer este panel</summary>
+<p class="hint">Por defecto muestra el <strong>mes más reciente</strong>; usa el filtro <strong>Mes</strong> para cambiar de mes. La barra es el presupuesto consumido: <span style="color:var(--status-crit);font-weight:700;">rojo</span> = te pasaste · <span style="color:var(--status-warn);font-weight:700;">ámbar</span> = cerca del límite <em>y por encima del ritmo del mes</em> · <span style="color:var(--status-good);font-weight:700;">verde</span> = con margen · <span style="color:var(--series-pos);font-weight:700;">azul</span> = gasto fijo ya pagado. La línea vertical marca cuánto del mes ya transcurrió. Solo se listan las categorías que requieren atención (usa «Ver todas» para el resto). El ahorro/inversión no cuenta como gasto en este panel.</p></details>
         <div class="glance-summary" id="glance-summary"></div>
         <div class="glance-list" id="glance-list"></div>
       </div>
 
       <div class="panel exec-hero">
         <h2>Tasa de Ahorro</h2>
-        <p class="hint" style="margin-top:0;">(Ingresos − Consumo) / Ingresos. Los traspasos a G. Ahorros / G. Inversiones cuentan como ahorro, no como consumo. <strong>No es lo mismo que "Real vs Presupuesto"</strong>: aquí se compara contra lo que ganaste, no contra lo que planeaste gastar — puedes pasarte del presupuesto en una categoría y aun así tener una tasa de ahorro positiva si en total gastaste menos de lo que ingresó.</p>
+        <details class="info-tip"><summary>ⓘ Cómo se calcula</summary>
+<p class="hint">Tasa = (Ingresos − Consumo) / Ingresos. Consumo = Necesidades + Deseos + Otro consumo. El <strong>ahorro/inversión</strong> y la <strong>provisión</strong> no cuentan como consumo: son plata que sigue siendo tuya (la provisión queda reservada para gastos futuros). Cuando usas esa provisión, el gasto sí cuenta como consumo del mes en que ocurre, así que un mes con un gasto grande pagado con provisión puede bajar la tasa. La marca del anillo es la meta (20%). Este panel y el de abajo solo responden a los filtros <strong>Año</strong> y <strong>Mes</strong>. No es lo mismo que «Real vs Presupuesto»: aquí se compara contra lo que ganaste, no contra lo que planeaste gastar.</p></details>
         <div class="exec-hero-row">
           <div class="gauge-wrap">
             <svg id="gauge-savings" viewBox="0 0 160 160"></svg>
@@ -458,6 +473,7 @@
               <svg id="chart-savings-trend" viewBox="0 0 420 90" preserveAspectRatio="none"></svg>
               <div class="tooltip" id="tooltip-savings-trend"></div>
             </div>
+<div class="trend-labels" id="trend-labels"></div>
             <div class="exec-badges" id="exec-badges"></div>
           </div>
         </div>
@@ -1142,6 +1158,29 @@
     return n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // ---------- helpers del Resumen ----------
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  // "08. ago" -> "ago"
+  function mesCorto(m) {
+    var t = String(m || '').replace(/^\s*\d+\s*[.\-)]*\s*/, '').trim();
+    return t || String(m || '');
+  }
+  function isCurrentMonth(anio, mes) {
+    var t = new Date();
+    return parseInt(anio, 10) === t.getFullYear() && parseInt(mes, 10) === t.getMonth() + 1;
+  }
+  // Solo Año y Mes (el Resumen necesita ver Ingresos, Gastos y Provisión a la vez)
+  function getFilteredYearMonth() {
+    return rows.filter(function (r) {
+      return ['anio', 'mes'].every(function (key) {
+        var sel = filterSelections[key];
+        return !sel.size || sel.has(r[key]);
+      });
+    });
+  }
+
   // ---------- render orchestrator ----------
   function render() {
     updateFabBadge();
@@ -1154,7 +1193,7 @@
     renderRecurring(getFilteredExceptMonth());
     renderWeeklyProjection(data);
     renderRawTable(data);
-    renderExecSummary(data);
+    renderExecSummary(getFilteredYearMonth());
     renderQuickGlance();
     buildCategorySelect();
     renderBuscador();
@@ -1740,7 +1779,7 @@
   }
 
   function renderExecSummary(data) {
-    var months = computeMonthlySavings(data || getFiltered());
+    var months = computeMonthlySavings(data || getFilteredYearMonth());
     var withIncome = months.filter(function (m) { return m.ingresos > 0; });
     var gaugeValueEl = document.getElementById('gauge-value');
     var gaugeMonthEl = document.getElementById('gauge-month');
@@ -1748,20 +1787,28 @@
     var badgesEl = document.getElementById('exec-badges');
     var gaugeSvg = document.getElementById('gauge-savings');
     var trendSvg = document.getElementById('chart-savings-trend');
+    var trendLabelsEl = document.getElementById('trend-labels');
     var barEl = document.getElementById('income-breakdown-bar');
     var legendEl = document.getElementById('income-breakdown-legend');
     var breakdownLabelEl = document.getElementById('breakdown-month-label');
 
     if (!withIncome.length) {
       gaugeSvg.innerHTML = ''; trendSvg.innerHTML = '';
-      gaugeValueEl.textContent = '—'; gaugeMonthEl.textContent = 'Sin datos de ingresos';
+      gaugeValueEl.textContent = '—'; gaugeValueEl.style.color = '';
+      gaugeMonthEl.textContent = 'Sin datos de ingresos';
       deltaEl.textContent = ''; badgesEl.innerHTML = '';
       barEl.innerHTML = ''; legendEl.innerHTML = ''; breakdownLabelEl.textContent = '';
+      if (trendLabelsEl) trendLabelsEl.innerHTML = '';
       return;
     }
 
     var current = withIncome[withIncome.length - 1];
     var prev = withIncome.length > 1 ? withIncome[withIncome.length - 2] : null;
+    var enCurso = isCurrentMonth(current.anio, current.mesLabel);
+    var lastAny = months[months.length - 1];
+    var sinIngresosNote = (lastAny && lastAny.sortKey > current.sortKey)
+      ? mesCorto(lastAny.mesLabel) + ' ' + lastAny.anio + ' aún no tiene ingresos registrados' : '';
+    var curLabel = mesCorto(current.mesLabel) + ' ' + current.anio;
 
     gaugeSvg.innerHTML = '';
     var ns = 'http://www.w3.org/2000/svg';
@@ -1792,29 +1839,41 @@
 
     gaugeValueEl.textContent = current.tasa.toFixed(1) + '%';
     gaugeValueEl.style.color = savingsColor(current.tasa);
-    gaugeMonthEl.textContent = current.mesLabel + ' ' + current.anio;
+    gaugeMonthEl.textContent = curLabel + (enCurso ? '\nen curso' : '');
 
+    var deltaHtml;
     if (prev && prev.tasa !== null) {
       var diff = current.tasa - prev.tasa;
       var dir = diff >= 0 ? 'up' : 'down';
       var arrow = diff >= 0 ? '▲' : '▼';
-      deltaEl.innerHTML = '<span class="' + dir + '">' + arrow + ' ' + Math.abs(diff).toFixed(1) + ' pts</span> vs ' + prev.mesLabel + ' ' + prev.anio + ' (' + prev.tasa.toFixed(1) + '%)';
+      deltaHtml = '<span class="' + dir + '">' + arrow + ' ' + Math.abs(diff).toFixed(1) + ' pts</span> vs ' + esc(mesCorto(prev.mesLabel)) + ' ' + esc(prev.anio) + ' (' + prev.tasa.toFixed(1) + '%)';
     } else {
-      deltaEl.textContent = 'Meta de referencia: 20% (marca en el anillo)';
+      deltaHtml = 'Meta de referencia: 20% (marca en el anillo)';
     }
+    if (sinIngresosNote) {
+      deltaHtml += '<div class="hint" style="margin:4px 0 0;">' + esc(sinIngresosNote) + ' — se muestra el último mes con ingresos.</div>';
+    }
+    deltaEl.innerHTML = deltaHtml;
 
-    var best = withIncome.reduce(function (a, b) { return b.tasa > a.tasa ? b : a; });
-    var worst = withIncome.reduce(function (a, b) { return b.tasa < a.tasa ? b : a; });
+    // mejor / peor mes: el mes en curso (incompleto) no compite
+    var complete = withIncome.filter(function (m) { return !isCurrentMonth(m.anio, m.mesLabel); });
+    var pool = complete.length ? complete : withIncome;
+    var best = pool.reduce(function (a, b) { return b.tasa > a.tasa ? b : a; });
+    var worst = pool.reduce(function (a, b) { return b.tasa < a.tasa ? b : a; });
     badgesEl.innerHTML =
-      '<div class="exec-badge">Mejor mes<strong style="color:' + cssVar('--status-good') + '">' + best.mesLabel + ' ' + best.anio + ' · ' + best.tasa.toFixed(1) + '%</strong></div>' +
-      '<div class="exec-badge">Mes más ajustado<strong style="color:' + savingsColor(worst.tasa) + '">' + worst.mesLabel + ' ' + worst.anio + ' · ' + worst.tasa.toFixed(1) + '%</strong></div>';
+      '<div class="exec-badge">Mejor mes<strong style="color:' + cssVar('--status-good') + '">' + esc(mesCorto(best.mesLabel)) + ' ' + esc(best.anio) + ' · ' + best.tasa.toFixed(1) + '%</strong></div>' +
+      '<div class="exec-badge">Mes más ajustado<strong style="color:' + savingsColor(worst.tasa) + '">' + esc(mesCorto(worst.mesLabel)) + ' ' + esc(worst.anio) + ' · ' + worst.tasa.toFixed(1) + '%</strong></div>' +
+      '<div class="exec-badge">Meta<strong>20%</strong></div>';
 
+    // ----- tendencia (escala acotada para que un mes extremo no aplaste al resto) -----
     var trendTooltip = document.getElementById('tooltip-savings-trend');
     trendSvg.innerHTML = '';
     var recent = withIncome.slice(-12);
     var W2 = 420, H2 = 90, padL2 = 6, padR2 = 6, padT2 = 10, padB2 = 10;
-    var minT = Math.min(0, Math.min.apply(null, recent.map(function (m) { return m.tasa; })));
-    var maxT = Math.max(20, Math.max.apply(null, recent.map(function (m) { return m.tasa; })));
+    var rates = recent.map(function (m) { return m.tasa; });
+    var minT = Math.max(-50, Math.min(0, Math.min.apply(null, rates)));
+    var maxT = Math.min(60, Math.max(20, Math.max.apply(null, rates)));
+    var clampT = function (v) { return Math.max(minT, Math.min(maxT, v)); };
     var sx2 = function (i) { return padL2 + (recent.length <= 1 ? 0 : (i / (recent.length - 1)) * (W2 - padL2 - padR2)); };
     var sy2 = function (v) { return H2 - padB2 - ((v - minT) / (maxT - minT || 1)) * (H2 - padT2 - padB2); };
     var zeroY = sy2(0);
@@ -1823,35 +1882,72 @@
     zline.setAttribute('y1', zeroY); zline.setAttribute('y2', zeroY);
     zline.setAttribute('class', 'gridline');
     trendSvg.appendChild(zline);
-    var d2 = recent.map(function (m, i) { return (i === 0 ? 'M' : 'L') + sx2(i).toFixed(1) + ',' + sy2(m.tasa).toFixed(1); }).join(' ');
+    var goalY = sy2(20);
+    var gline = document.createElementNS(ns, 'line');
+    gline.setAttribute('x1', padL2); gline.setAttribute('x2', W2 - padR2);
+    gline.setAttribute('y1', goalY); gline.setAttribute('y2', goalY);
+    gline.setAttribute('stroke', cssVar('--status-good')); gline.setAttribute('stroke-width', '1');
+    gline.setAttribute('stroke-dasharray', '4 3'); gline.setAttribute('opacity', '0.6');
+    trendSvg.appendChild(gline);
+    var d2 = recent.map(function (m, i) { return (i === 0 ? 'M' : 'L') + sx2(i).toFixed(1) + ',' + sy2(clampT(m.tasa)).toFixed(1); }).join(' ');
     var path2 = document.createElementNS(ns, 'path');
     path2.setAttribute('d', d2); path2.setAttribute('fill', 'none');
     path2.setAttribute('stroke', cssVar('--series-pos')); path2.setAttribute('stroke-width', '2');
     path2.setAttribute('stroke-linecap', 'round'); path2.setAttribute('stroke-linejoin', 'round');
     trendSvg.appendChild(path2);
+    var trendTipTimer = null;
+    var anyClipped = false;
     recent.forEach(function (m, i) {
+      var clippedPt = m.tasa < minT || m.tasa > maxT;
+      if (clippedPt) anyClipped = true;
+      var cxp = sx2(i), cyp = sy2(clampT(m.tasa));
       var pt = document.createElementNS(ns, 'circle');
-      pt.setAttribute('cx', sx2(i)); pt.setAttribute('cy', sy2(m.tasa)); pt.setAttribute('r', '3.5');
-      pt.setAttribute('fill', savingsColor(m.tasa));
+      pt.setAttribute('cx', cxp); pt.setAttribute('cy', cyp); pt.setAttribute('r', '3.5');
+      if (clippedPt) {
+        pt.setAttribute('fill', cssVar('--surface-1'));
+        pt.setAttribute('stroke', savingsColor(m.tasa)); pt.setAttribute('stroke-width', '2');
+      } else {
+        pt.setAttribute('fill', savingsColor(m.tasa));
+      }
       trendSvg.appendChild(pt);
-      pt.addEventListener('mousemove', function (evt) {
+      // zona táctil más grande (celular)
+      var hit = document.createElementNS(ns, 'circle');
+      hit.setAttribute('cx', cxp); hit.setAttribute('cy', cyp); hit.setAttribute('r', '12');
+      hit.setAttribute('fill', 'transparent');
+      trendSvg.appendChild(hit);
+      function showTip(evt) {
         var rect = trendSvg.getBoundingClientRect();
         trendTooltip.style.opacity = '1';
         trendTooltip.style.left = ((evt.clientX - rect.left)) + 'px';
         trendTooltip.style.top = ((evt.clientY - rect.top) - 30) + 'px';
-        trendTooltip.innerHTML = '<strong>' + m.mesLabel + ' ' + m.anio + '</strong><br/>Tasa de ahorro: ' + m.tasa.toFixed(1) + '%';
+        trendTooltip.innerHTML = '<strong>' + esc(mesCorto(m.mesLabel)) + ' ' + esc(m.anio) + '</strong><br/>Tasa de ahorro: ' + m.tasa.toFixed(1) + '%';
+      }
+      hit.addEventListener('mousemove', showTip);
+      hit.addEventListener('mouseleave', function () { trendTooltip.style.opacity = '0'; });
+      hit.addEventListener('click', function (evt) {
+        showTip(evt);
+        clearTimeout(trendTipTimer);
+        trendTipTimer = setTimeout(function () { trendTooltip.style.opacity = '0'; }, 2500);
       });
-      pt.addEventListener('mouseleave', function () { trendTooltip.style.opacity = '0'; });
     });
+    if (trendLabelsEl) {
+      var first = recent[0], last = recent[recent.length - 1];
+      trendLabelsEl.innerHTML = recent.length > 1
+        ? '<span>' + esc(mesCorto(first.mesLabel)) + ' ' + esc(first.anio) + '</span>' +
+          (anyClipped ? '<span>○ = fuera de escala</span>' : '') +
+          '<span>' + esc(mesCorto(last.mesLabel)) + ' ' + esc(last.anio) + '</span>'
+        : '';
+    }
 
-    breakdownLabelEl.textContent = '— ' + current.mesLabel + ' ' + current.anio;
+    // ----- ¿a dónde fue tu ingreso? -----
+    breakdownLabelEl.textContent = '— ' + curLabel + (enCurso ? ' · en curso' : '');
     var ingresos = current.ingresos;
     var segs = [
       { label: 'Necesidades', value: current.necesidades, color: cssVar('--cat-necesidad') },
       { label: 'Deseos', value: current.deseos, color: cssVar('--cat-deseo') },
       { label: 'Otro consumo', value: current.otroConsumo, color: cssVar('--text-muted') },
       { label: 'Ahorro / Inversión', value: current.ahorroActivo, color: cssVar('--cat-ahorro') },
-      { label: 'Provisión', value: Math.abs(current.provision), color: cssVar('--cat-provision') }
+      { label: 'Provisión (ahorro reservado)', value: Math.abs(current.provision), color: cssVar('--cat-provision') }
     ];
     var allocated = segs.reduce(function (s, x) { return s + x.value; }, 0);
     var remanente = ingresos - allocated;
@@ -1907,6 +2003,10 @@
   function stat(lbl, val) { return '<div class="explorer-stat">' + lbl + '<b>' + val + '</b></div>'; }
 
   // ---------- vistazo rápido ----------
+  // Gastos fijos: se muestran como "pagado" (azul) cuando ya llegaron a su presupuesto. Edita esta lista si cambian.
+  var CATEGORIAS_FIJAS = ['G.N. Vivienda', 'G.D. Suscripciones'];
+  var glanceShowAll = false;
+
   function renderQuickGlance() {
     var summaryEl = document.getElementById('glance-summary');
     var listEl = document.getElementById('glance-list');
@@ -1914,9 +2014,9 @@
     if (!summaryEl) return;
     var data = getFiltered();
     var bdata = getBudgetFiltered();
+    var latest = latestMonthOf(data);
 
     if (filterSelections.mes.size === 0) {
-      var latest = latestMonthOf(data);
       if (latest) {
         data = data.filter(function (r) { return r.anio === latest.anio && r.mes === latest.mes; });
         bdata = bdata.filter(function (b) { return b.anio === latest.anio && b.mes === latest.mes; });
@@ -1926,54 +2026,97 @@
       labelEl.textContent = '— meses seleccionados';
     }
 
+    // ritmo del mes: solo si lo que se ve es el mes calendario actual
+    var pace = null;
+    var singleMonthView = filterSelections.mes.size === 0 || (filterSelections.mes.size === 1 && filterSelections.anio.size === 1);
+    if (latest && singleMonthView && isCurrentMonth(latest.anio, latest.mes)) {
+      var t = new Date();
+      var dim = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+      pace = { day: t.getDate(), dim: dim, pct: t.getDate() / dim * 100 };
+      labelEl.textContent += ' · día ' + pace.day + ' de ' + pace.dim;
+    }
+
     if (!data.length) { summaryEl.innerHTML = ''; listEl.innerHTML = '<p class="hint">Sin datos para el periodo.</p>'; return; }
 
-    var realG = {}, realI = 0, budI = 0;
+    // consumo vs ahorro/inversión (los traspasos a ahorro no son "gasto")
+    var realC = {}, realI = 0, ahorroReal = 0;
     data.forEach(function (r) {
-      if (r.naturaleza === 'Gastos') realG[r.categoria] = (realG[r.categoria] || 0) + Math.abs(r.importe);
-      else if (r.naturaleza === 'Ingresos') realI += r.importe;
+      if (r.naturaleza === 'Gastos') {
+        if (tipoBucket(r.tipo) === 'ahorroActivo') ahorroReal += Math.abs(r.importe);
+        else realC[r.categoria] = (realC[r.categoria] || 0) + Math.abs(r.importe);
+      } else if (r.naturaleza === 'Ingresos') realI += r.importe;
     });
-    var budG = {};
+    var budC = {}, budI = 0, ahorroBud = 0;
     bdata.forEach(function (b) {
       var lado = tipoLado(b.tipo);
-      if (lado === 'Gastos') budG[b.categoria] = (budG[b.categoria] || 0) + Math.abs(b.presupuesto);
-      else if (lado === 'Ingresos') budI += Math.abs(b.presupuesto);
+      if (lado === 'Gastos') {
+        if (tipoBucket(b.tipo) === 'ahorroActivo') ahorroBud += Math.abs(b.presupuesto);
+        else budC[b.categoria] = (budC[b.categoria] || 0) + Math.abs(b.presupuesto);
+      } else if (lado === 'Ingresos') budI += Math.abs(b.presupuesto);
     });
 
-    var names = Array.from(new Set(Object.keys(realG).concat(Object.keys(budG))));
+    var names = Array.from(new Set(Object.keys(realC).concat(Object.keys(budC))));
     var list = names.map(function (n) {
-      var real = realG[n] || 0, bud = budG[n] || 0;
-      var pct = bud ? real / bud * 100 : (real ? Infinity : 0);
-      return { cat: n, real: real, bud: bud, rest: bud - real, pct: pct };
-    }).sort(function (a, b) {
-      var ap = a.pct === Infinity ? 1e9 : a.pct, bp = b.pct === Infinity ? 1e9 : b.pct;
-      return bp - ap;
+      var real = realC[n] || 0, bud = budC[n] || 0;
+      var pct = bud ? real / bud * 100 : 0;
+      var fija = CATEGORIAS_FIJAS.indexOf(n) > -1;
+      var status;
+      if (bud > 0 && real > bud) status = 'crit';
+      else if (bud === 0 && real > 0) status = 'nobud';
+      else if (fija && bud > 0 && real >= bud * 0.97) status = 'paid';
+      else if (bud > 0 && pct >= 80 && (!pace || pct > pace.pct)) status = 'warn';
+      else status = 'ok';
+      return { cat: n, real: real, bud: bud, rest: bud - real, pct: pct, status: status, fija: fija };
     });
+    var RANK = { crit: 4, warn: 3, nobud: 2, ok: 1, paid: 0 };
+    list.sort(function (a, b) { return (RANK[b.status] - RANK[a.status]) || (b.pct - a.pct); });
 
     var totReal = list.reduce(function (s, x) { return s + x.real; }, 0);
     var totBud = list.reduce(function (s, x) { return s + x.bud; }, 0);
-    var overCount = list.filter(function (x) { return x.real > x.bud && x.bud > 0; }).length;
+    var overCount = list.filter(function (x) { return x.status === 'crit'; }).length;
     var conBudget = list.filter(function (x) { return x.bud > 0; }).length;
 
-    summaryEl.innerHTML =
-      chip('Ingreso real', fmt(realI), budI ? ('presup. ' + fmt(budI)) : '') +
-      chip('Gasto total', fmt(totReal), totBud ? ('presup. ' + fmt(totBud)) : '') +
-      chip('Categorías sobre presupuesto', String(overCount), 'de ' + conBudget + ' con presupuesto');
+    var chips =
+      chip('Ingreso real', realI > 0 ? fmt(realI) : ((filterSelections.naturaleza.size && !filterSelections.naturaleza.has('Ingresos')) ? '—' : 'Pendiente'), budI ? ('presup. ' + fmt(budI)) : '') +
+      chip('Gasto (sin ahorro)', fmt(totReal), totBud ? ('presup. ' + fmt(totBud)) : '');
+    if (ahorroReal > 0 || ahorroBud > 0) {
+      chips += chip('Ahorro / inversión', fmt(ahorroReal), ahorroBud ? ('presup. ' + fmt(ahorroBud)) : '');
+    }
+    chips += chip('Categorías sobre presupuesto', String(overCount), 'de ' + conBudget + ' con presupuesto');
+    summaryEl.innerHTML = chips;
 
-    listEl.innerHTML = list.map(function (x) {
+    function rowHtml(x) {
       var color, foot;
-      if (x.bud === 0) { color = cssVar('--text-muted'); foot = '<span>sin presupuesto asignado</span>'; }
-      else if (x.real > x.bud) { color = cssVar('--status-crit'); foot = '<span class="over">te pasaste ' + fmt(x.real - x.bud) + '</span>'; }
-      else if (x.pct >= 80) { color = cssVar('--status-warn'); foot = '<span>quedan ' + fmt(x.rest) + '</span>'; }
+      if (x.status === 'paid') { color = cssVar('--series-pos'); foot = '<span>✓ pagado</span>'; }
+      else if (x.status === 'nobud') { color = cssVar('--text-muted'); foot = '<span>sin presupuesto asignado</span>'; }
+      else if (x.status === 'crit') { color = cssVar('--status-crit'); foot = '<span class="over">te pasaste ' + fmt(x.real - x.bud) + '</span>'; }
+      else if (x.status === 'warn') { color = cssVar('--status-warn'); foot = '<span>quedan ' + fmt(x.rest) + '</span>'; }
       else { color = cssVar('--status-good'); foot = '<span class="ok">quedan ' + fmt(x.rest) + '</span>'; }
       var w = x.bud ? Math.min(100, x.real / x.bud * 100) : (x.real ? 100 : 0);
-      var pctTxt = x.pct === Infinity ? '∞' : (x.bud ? x.pct.toFixed(0) + '%' : '—');
+      var pctTxt = x.status === 'nobud' ? '—' : (x.bud ? x.pct.toFixed(0) + '%' : '—');
+      var marker = (pace && x.bud > 0 && !x.fija) ? '<div class="glance-pace" style="left:' + pace.pct.toFixed(1) + '%"></div>' : '';
       return '<div class="glance-row">' +
-        '<div class="top"><span class="cat">' + x.cat + '</span><span class="nums"><b>' + fmt(x.real) + '</b> / ' + fmt(x.bud) + '</span></div>' +
-        '<div class="glance-track"><div class="glance-fill" style="width:' + w + '%;background:' + color + '"></div></div>' +
+        '<div class="top"><span class="cat">' + esc(x.cat) + '</span><span class="nums"><b>' + fmt(x.real) + '</b> / ' + fmt(x.bud) + '</span></div>' +
+        '<div class="glance-track"><div class="glance-fill" style="width:' + w + '%;background:' + color + '"></div>' + marker + '</div>' +
         '<div class="foot">' + foot + '<span>' + pctTxt + '</span></div>' +
         '</div>';
-    }).join('') || '<p class="hint">Sin gastos en el periodo.</p>';
+    }
+
+    var attention = list.filter(function (x) { return x.status === 'crit' || x.status === 'warn' || x.status === 'nobud'; });
+    var visible = glanceShowAll ? list : attention;
+    var html;
+    if (!list.length) html = '<p class="hint">Sin gastos en el periodo.</p>';
+    else {
+      html = visible.map(rowHtml).join('') ||
+        '<p class="hint">Todo en orden: ninguna categoría requiere atención en este periodo.</p>';
+      if (attention.length < list.length) {
+        html += '<button type="button" class="view-toggle" id="glance-toggle">' +
+          (glanceShowAll ? 'Ver solo las que requieren atención' : 'Ver todas las categorías (' + list.length + ')') + '</button>';
+      }
+    }
+    listEl.innerHTML = html;
+    var tg = document.getElementById('glance-toggle');
+    if (tg) tg.addEventListener('click', function () { glanceShowAll = !glanceShowAll; renderQuickGlance(); });
   }
 
   // ---------- explorador de categoría en el tiempo ----------
