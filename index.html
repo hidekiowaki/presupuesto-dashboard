@@ -365,6 +365,24 @@
 .glance-pace { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text-primary); opacity: 0.6; }
 .gauge-label { white-space: pre-line; text-align: center; }
 .trend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ---- Detalle: periodo, secciones, proyección ---- */
+.period-bar { padding: 12px 22px; }
+.period-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.period-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+.period-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip-btn { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-primary); font-size: 0.82rem; font-weight: 500; }
+.chip-btn.active { background: var(--series-pos); color: #fff; font-weight: 700; }
+.section-title { margin: 22px 2px 10px; font-size: 0.95rem; font-weight: 800; color: var(--text-primary); }
+.section-title small { font-weight: 500; color: var(--text-muted); font-size: 0.75rem; margin-left: 6px; }
+.monthly-table th:first-child, .monthly-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-1); }
+.proj-track { position: relative; height: 14px; border-radius: 7px; background: var(--gridline); margin: 16px 0 8px; }
+.proj-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px 0 0 7px; background: var(--series-pos); }
+.proj-ext { position: absolute; top: 0; bottom: 0; background: var(--series-proj); opacity: 0.85; }
+.proj-bud { position: absolute; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--text-primary); }
+.proj-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-secondary); }
+.proj-risk { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 6px 0; border-bottom: 1px solid var(--gridline); }
+.proj-risk .num { font-variant-numeric: tabular-nums; color: var(--text-secondary); text-align: right; }
 </style>
 
 <div class="viz-root">
@@ -487,135 +505,147 @@
     </div>
 
     <div class="tab-panel" id="tab-detalle" style="display:none;">
-    <div class="panel">
-      <h2>Resumen</h2>
-      <div class="kpi-row" id="kpi-row"></div>
-    </div>
 
-    <div class="panel">
-      <h2>Flujo acumulado</h2>
-      <div class="chart-wrap">
-        <svg id="chart-line" viewBox="0 0 900 260" preserveAspectRatio="none"></svg>
-        <div class="tooltip" id="tooltip-line"></div>
-      </div>
-    </div>
+<div class="panel period-bar">
+<div class="period-row">
+<span class="period-title">Periodo</span>
+<div class="period-chips" id="period-chips">
+<button type="button" class="chip-btn" data-p="mes">Mes actual</button>
+<button type="button" class="chip-btn" data-p="anio">Año actual</button>
+<button type="button" class="chip-btn" data-p="todo">Todo el histórico</button>
+</div>
+</div>
+<div class="hint" id="period-label"></div>
+</div>
 
-    <div class="panel">
-      <h2>Gastos por Tipo</h2>
-      <div class="chart-wrap">
-        <svg id="chart-bar" viewBox="0 0 900 220"></svg>
-        <div class="tooltip" id="tooltip-bar"></div>
-      </div>
-    </div>
+<h3 class="section-title">Este periodo</h3>
 
-    <div class="two-col">
-      <div class="panel">
-        <h2>Gastos por Categoría</h2>
-        <div class="table-scroll table-scroll-compact">
-          <table id="table-cat">
-            <thead><tr><th>Categoría</th><th>Importe</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="panel">
-        <h2>Gastos por Subcategoría</h2>
-        <p class="hint" style="margin-top:0;">⚠ = aparece en 3+ meses distintos (candidato recurrente), sin importar el filtro de Mes actual.</p>
-        <div class="table-scroll table-scroll-compact">
-          <table id="table-subcat">
-            <thead><tr><th>Subcategoría</th><th>Importe</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+<div class="panel">
+<h2>Resumen del periodo</h2>
+<div class="kpi-row" id="kpi-row"></div>
+</div>
 
-    <div class="two-col" id="rvsb-row" style="display:none;">
-      <div class="panel" id="panel-rvsb-ingresos">
-        <h2>Ingresos — Real vs Presupuesto</h2>
-        <p class="hint" style="margin-top:0;">Ir por encima del presupuesto es bueno aquí. Click en un encabezado para ordenar.</p>
-        <div class="table-scroll table-scroll-compact">
-          <table id="table-rvsb-ingresos">
-            <thead><tr>
-              <th class="sortable" data-key="name">Categoría <span class="arrow">↕</span></th>
-              <th class="sortable" data-key="gastos">Real <span class="arrow">↕</span></th>
-              <th class="sortable" data-key="presupuesto">Presup. <span class="arrow">↕</span></th>
-              <th class="sortable active" data-key="dif">Dif. <span class="arrow">▼</span></th>
-              <th class="sortable" data-key="avance">% <span class="arrow">↕</span></th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+<div class="panel" id="panel-proyeccion" style="display:none;">
+<h2>Proyección de cierre <span id="proj-month-label" class="hint" style="margin:0;"></span></h2>
+<div id="proyeccion-body"></div>
+</div>
 
-      <div class="panel" id="panel-rvsb-gastos">
-        <h2>Gastos — Real vs Presupuesto</h2>
-        <p class="hint" style="margin-top:0;">Ir por encima del presupuesto se resalta en rojo. Click en un encabezado para ordenar.</p>
-        <div class="table-scroll table-scroll-compact">
-          <table id="table-rvsb-gastos">
-            <thead><tr>
-              <th class="sortable" data-key="name">Categoría <span class="arrow">↕</span></th>
-              <th class="sortable" data-key="gastos">Gastos <span class="arrow">↕</span></th>
-              <th class="sortable" data-key="presupuesto">Presup. <span class="arrow">↕</span></th>
-              <th class="sortable active" data-key="dif">Dif. <span class="arrow">▼</span></th>
-              <th class="sortable" data-key="avance">% <span class="arrow">↕</span></th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+<div class="panel">
+<h2>Gastos por Tipo</h2>
+<div class="chart-wrap">
+<svg id="chart-bar" viewBox="0 0 900 220"></svg>
+<div class="tooltip" id="tooltip-bar"></div>
+</div>
+</div>
 
-    <div class="panel" id="panel-monthly" style="display:none;">
-      <h2>Comparativo Mensual (Real vs Presupuesto)</h2>
-      <p class="hint" style="margin-top:0;">Agrupado por Tipo — click en un grupo para expandir/contraer. Cada celda muestra Real / Presupuesto. <strong>Cada grupo tiene su propia barra debajo</strong> para deslizarte y ver más meses → (o mantén <strong>Shift</strong> y usa la rueda del mouse).</p>
-      <div class="monthly-scroll" id="monthly-wrap"></div>
-    </div>
+<div class="two-col">
+<div class="panel">
+<h2>Gastos por Categoría <span class="hint" style="margin:0;">(sin ahorro)</span></h2>
+<div class="table-scroll table-scroll-compact">
+<table id="table-cat">
+<thead><tr><th>Categoría</th><th>Importe</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="panel">
+<h2>Gastos por Subcategoría <span class="hint" style="margin:0;">(sin ahorro)</span></h2>
+<p class="hint" style="margin-top:0;">⚠ = aparece en 3+ meses distintos (candidato recurrente), sin importar el filtro de Mes actual.</p>
+<div class="table-scroll table-scroll-compact">
+<table id="table-subcat">
+<thead><tr><th>Subcategoría</th><th>Importe</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</div>
 
-    <div class="panel">
-      <h2>⚠ Posibles gastos recurrentes</h2>
-      <p class="hint" style="margin-top:0;">Subcategorías que aparecen en 3 o más meses distintos (usando todo tu historial, sin importar el filtro de Mes) — candidatas a suscripciones o gastos fijos. Click en un encabezado para ordenar.</p>
-      <input type="text" class="table-filter" id="recurring-filter" placeholder="Filtrar por subcategoría..." />
-      <div class="table-scroll">
-        <table id="table-recurring">
-          <thead><tr>
-            <th class="sortable" data-key="name">Subcategoría <span class="arrow">↕</span></th>
-            <th class="sortable" data-key="months">Meses <span class="arrow">↕</span></th>
-            <th class="sortable" data-key="avg">Promedio <span class="arrow">↕</span></th>
-            <th class="sortable active" data-key="impact">Impacto mensual est. <span class="arrow">▼</span></th>
-            <th class="sortable" data-key="last">Último <span class="arrow">↕</span></th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
+<div class="two-col" id="rvsb-row" style="display:none;">
+<div class="panel" id="panel-rvsb-ingresos">
+<h2>Ingresos — Real vs Presupuesto</h2>
+<p class="hint" style="margin-top:0;">Ir por encima del presupuesto es bueno aquí. Click en un encabezado para ordenar.</p>
+<div class="table-scroll table-scroll-compact">
+<table id="table-rvsb-ingresos">
+<thead><tr>
+<th class="sortable" data-key="name">Categoría <span class="arrow">↕</span></th>
+<th class="sortable" data-key="gastos">Real <span class="arrow">↕</span></th>
+<th class="sortable" data-key="presupuesto">Presup. <span class="arrow">↕</span></th>
+<th class="sortable active" data-key="dif">Dif. <span class="arrow">▼</span></th>
+<th class="sortable" data-key="avance">% <span class="arrow">↕</span></th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="panel" id="panel-rvsb-gastos">
+<h2>Gastos — Real vs Presupuesto</h2>
+<p class="hint" style="margin-top:0;">Ir por encima del presupuesto se resalta en rojo. El presupuesto llega solo hasta el mes actual. Click en un encabezado para ordenar.</p>
+<div class="table-scroll table-scroll-compact">
+<table id="table-rvsb-gastos">
+<thead><tr>
+<th class="sortable" data-key="name">Categoría <span class="arrow">↕</span></th>
+<th class="sortable" data-key="gastos">Gastos <span class="arrow">↕</span></th>
+<th class="sortable" data-key="presupuesto">Presup. <span class="arrow">↕</span></th>
+<th class="sortable active" data-key="dif">Dif. <span class="arrow">▼</span></th>
+<th class="sortable" data-key="avance">% <span class="arrow">↕</span></th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</div>
 
-    <div class="panel">
-      <h2>Proyección de flujo de caja semanal</h2>
-      <p class="hint" style="margin-top:0;">Semanas reales (últimas 8) vs. proyección de las próximas 4, usando tu promedio semanal reciente.</p>
-      <div class="chart-wrap">
-        <svg id="chart-weekly" viewBox="0 0 900 260"></svg>
-        <div class="tooltip" id="tooltip-weekly"></div>
-      </div>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--series-pos)"></span>Neto positivo (real)</span>
-        <span><span class="dot" style="background:var(--series-neg)"></span>Neto negativo (real)</span>
-        <span><span class="dot" style="background:var(--series-proj); opacity:0.7"></span>Proyectado</span>
-      </div>
-    </div>
+<div class="panel">
+<h2>Detalle de movimientos <button class="view-toggle" id="toggle-table">mostrar/ocultar tabla</button></h2>
+<div class="table-scroll" id="raw-table-wrap" style="display:none;">
+<p class="hint" id="raw-count" style="margin-top:0;"></p>
+<table id="table-raw">
+<thead><tr><th>Fecha</th><th>Naturaleza</th><th>Categoría</th><th>Subcategoría</th><th>Importe</th><th>Comentario</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
 
-    <div class="panel">
-      <h2>Detalle de movimientos <button class="view-toggle" id="toggle-table">mostrar/ocultar tabla</button></h2>
-      <div class="table-scroll" id="raw-table-wrap" style="display:none;">
-        <table id="table-raw">
-          <thead><tr><th>Fecha</th><th>Naturaleza</th><th>Categoría</th><th>Subcategoría</th><th>Importe</th><th>Comentario</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-    </div>
+<h3 class="section-title">Histórico hasta la fecha <small>no dependen del periodo elegido arriba ni del filtro de Mes</small></h3>
 
-    <div class="tab-panel" id="tab-explorar" style="display:none;">
+<div class="panel">
+<h2>Flujo acumulado</h2>
+<details class="info-tip"><summary>ⓘ Cómo leerlo</summary>
+<p class="hint">Suma acumulada de todos tus movimientos (ingresos, gastos, ahorro y provisión) desde el primero de tu hoja: el «Saldo inicial a Julio» (tu liquidación, 1/7/2025), que cuenta como punto de partida. Antes de esa fecha no hay nada registrado. Respeta Año, Naturaleza, Tipo y Categoría: si filtras por Año, la suma vuelve a empezar de 0 al inicio de ese año. Toca o pasa el mouse por la línea para ver cada punto.</p></details>
+<div class="chart-wrap">
+<svg id="chart-line" viewBox="0 0 900 260" preserveAspectRatio="none"></svg>
+<div class="tooltip" id="tooltip-line"></div>
+</div>
+<div class="trend-labels" id="line-x-labels"></div>
+</div>
+
+<div class="panel" id="panel-monthly" style="display:none;">
+<h2>Comparativo Mensual (Real vs Presupuesto)</h2>
+<p class="hint" style="margin-top:0;">Agrupado por Tipo — click en un grupo para expandir/contraer. Cada celda muestra Real / Presupuesto, hasta el mes actual. <strong>Cada grupo tiene su propia barra debajo</strong> para deslizarte y ver más meses (o mantén <strong>Shift</strong> y usa la rueda del mouse). La columna de categoría queda fija.</p>
+<div class="monthly-scroll" id="monthly-wrap"></div>
+</div>
+
+<div class="panel">
+<h2>⚠ Posibles gastos recurrentes</h2>
+<p class="hint" style="margin-top:0;">Subcategorías de gasto (sin ahorro) que aparecen en 3 o más meses distintos, usando todo tu historial. <strong>Impacto mensual</strong> = total ÷ meses en que aparece. Click en un encabezado para ordenar.</p>
+<input type="text" class="table-filter" id="recurring-filter" placeholder="Filtrar por subcategoría..." />
+<div class="table-scroll">
+<table id="table-recurring">
+<thead><tr>
+<th class="sortable" data-key="name">Subcategoría <span class="arrow">↕</span></th>
+<th class="sortable" data-key="months">Meses <span class="arrow">↕</span></th>
+<th class="sortable" data-key="avg">Prom. por mov. <span class="arrow">↕</span></th>
+<th class="sortable active" data-key="impact">Impacto mensual est. <span class="arrow">▼</span></th>
+<th class="sortable" data-key="last">Último <span class="arrow">↕</span></th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div class="tab-panel" id="tab-explorar" style="display:none;">
       <div class="panel">
         <h2>Comportamiento de una categoría en el tiempo</h2>
         <p class="hint" style="margin-top:0;">Elige una categoría y mira cómo se ha movido mes a mes en todo tu historial. La línea punteada es tu presupuesto mensual; las barras en rojo son meses donde te pasaste.</p>
@@ -769,6 +799,7 @@
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.style.display = 'none'; });
       var target = document.getElementById('tab-' + btn.dataset.tab);
       if (target) target.style.display = 'block';
+      if (btn.dataset.tab === 'detalle') scrollMonthlyToEnd(false);
     });
   });
 
@@ -885,7 +916,7 @@
 
   function getBudgetFiltered() {
     return budgetRows.filter(function (b) {
-      return (!filterSelections.anio.size || filterSelections.anio.has(b.anio)) &&
+      return budgetNotFuture(b) && (!filterSelections.anio.size || filterSelections.anio.has(b.anio)) &&
              (!filterSelections.mes.size || filterSelections.mes.has(b.mes)) &&
              (!filterSelections.tipo.size || filterSelections.tipo.has(b.tipo)) &&
              (!filterSelections.categoria.size || filterSelections.categoria.has(b.categoria));
@@ -899,6 +930,7 @@
 
   function onBudgetLoaded(text, sourceLabel) {
     budgetRows = parseBudgetRows(text);
+    if (IGNORAR_INVERSIONES) budgetRows = budgetRows.filter(function (b) { return !esInversion(b); });
     budgetStatusLine.textContent = budgetRows.length + ' líneas de presupuesto cargadas desde ' + sourceLabel + '. Última actualización: ' + new Date().toLocaleString();
     document.getElementById('rvsb-row').style.display = budgetRows.length ? 'grid' : 'none';
     document.getElementById('panel-monthly').style.display = budgetRows.length ? 'block' : 'none';
@@ -996,6 +1028,7 @@
   function onDataLoaded(text, sourceLabel) {
     var raw = parseCSV(text);
     rows = normalizeRows(raw);
+    if (IGNORAR_INVERSIONES) rows = rows.filter(function (r) { return !esInversion(r); });
     statusLine.textContent = rows.length + ' movimientos cargados desde ' + sourceLabel + '. Última actualización: ' + new Date().toLocaleString();
     var luEl = document.getElementById('last-update');
     if (luEl) luEl.textContent = '🕒 Datos actualizados: ' + new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
@@ -1181,18 +1214,58 @@
     });
   }
 
+  // ---------- configuración ----------
+  // Inversión: aún no empiezas, así que se deja fuera de todos los cálculos (pon false para volver a incluirla).
+  var IGNORAR_INVERSIONES = true;
+  function esInversion(x) { return stripAccents(String((x && x.tipo) || '').toLowerCase()).indexOf('inversion') > -1; }
+  // El presupuesto solo cuenta hasta el mes actual (no compara contra meses que aún no llegan)
+  function budgetNotFuture(b) {
+    var t = new Date(), nowKey = t.getFullYear() * 100 + (t.getMonth() + 1);
+    var y = parseInt(b.anio, 10), n = parseInt(b.mes, 10);
+    if (!y || !n) return true;
+    return y * 100 + n <= nowKey;
+  }
+  // Periodo con el que abre Detalle: 'mes' (como Resumen), 'anio' o 'todo'
+  var detallePeriodo = 'mes';
+
+  function detallePeriod() {
+    var base = getFiltered();
+    if (filterSelections.mes.size) return { custom: true, label: 'meses seleccionados en Filtros', test: function () { return true; } };
+    var latest = latestMonthOf(base);
+    if (!latest || detallePeriodo === 'todo') {
+      var ms = allMonthsSorted(), lbl = 'todo el histórico';
+      if (ms.length) lbl += ' (' + mesCorto(ms[0].mes) + ' ' + ms[0].anio + ' – ' + mesCorto(ms[ms.length - 1].mes) + ' ' + ms[ms.length - 1].anio + ')';
+      return { custom: false, label: lbl, test: function () { return true; } };
+    }
+    if (detallePeriodo === 'anio') return { custom: false, label: 'año ' + latest.anio, test: function (x) { return x.anio === latest.anio; } };
+    return { custom: false, label: monthLabel(latest.anio, latest.num), test: function (x) { return x.anio === latest.anio && x.mes === latest.mes; } };
+  }
+  function getDetalleRows() { var pd = detallePeriod(); return getFiltered().filter(function (r) { return pd.test(r); }); }
+  function getDetalleBudget() { var pd = detallePeriod(); return getBudgetFiltered().filter(function (b) { return pd.test(b); }); }
+
+  function renderPeriodBar() {
+    var pd = detallePeriod();
+    document.querySelectorAll('#period-chips .chip-btn').forEach(function (btn) {
+      btn.classList.toggle('active', !pd.custom && btn.dataset.p === detallePeriodo);
+    });
+    var el = document.getElementById('period-label');
+    if (el) el.textContent = 'Mostrando: ' + pd.label + '. Para elegir otro mes u otro año usa Filtros.';
+  }
+
   // ---------- render orchestrator ----------
   function render() {
     updateFabBadge();
-    var data = getFiltered();
+    var data = getDetalleRows();
+    var hist = getFilteredExceptMonth();
+    renderPeriodBar();
     renderKPIs(data);
-    renderLineChart(data);
+    renderProyeccion();
     renderBarChart(data);
+    renderRecurring(hist);
     renderCatTable(data);
     renderSubcatTable(data);
-    renderRecurring(getFilteredExceptMonth());
-    renderWeeklyProjection(data);
     renderRawTable(data);
+    renderLineChart(hist);
     renderExecSummary(getFilteredYearMonth());
     renderQuickGlance();
     buildCategorySelect();
@@ -1200,72 +1273,170 @@
     if (budgetRows.length) { renderRvsB(data); renderMonthly(); }
   }
 
-  // ---------- KPIs ----------
+  // ---------- KPIs (ahorro y provisión separados del gasto) ----------
   function renderKPIs(data) {
-    var byNat = {};
+    var groups = {}, ing = 0, saldo = 0;
     data.forEach(function (r) {
-      byNat[r.naturaleza] = (byNat[r.naturaleza] || 0) + r.importe;
+      saldo += r.importe;
+      var key;
+      if (r.naturaleza === 'Gastos') key = tipoBucket(r.tipo) === 'ahorroActivo' ? 'Ahorro' : 'Gastos';
+      else key = r.naturaleza;
+      if (!groups[key]) groups[key] = { value: 0, reint: 0 };
+      groups[key].value += r.importe;
+      if (r.naturaleza === 'Provisión' && r.importe > 0) groups[key].reint += r.importe;
+      if (r.naturaleza === 'Ingresos') ing += r.importe;
     });
-    var saldo = data.reduce(function (s, r) { return s + r.importe; }, 0);
-    var tiles = Object.keys(byNat).map(function (k) {
-      var reintegro = k === 'Provisión'
-        ? data.filter(function (r) { return r.naturaleza === 'Provisión' && r.importe > 0; })
-              .reduce(function (s, r) { return s + r.importe; }, 0)
-        : 0;
-      return { label: k, value: byNat[k], naturaleza: k, reintegro: reintegro };
+    if (!groups['Ingresos']) groups['Ingresos'] = { value: 0, reint: 0 };
+    var ORDER = ['Ingresos', 'Gastos', 'Ahorro', 'Provisión'];
+    var keys = Object.keys(groups).sort(function (a, b) {
+      var ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
     });
-    tiles.push({ label: 'Saldo', value: saldo, naturaleza: '', emphasize: true });
+    var tiles = keys.map(function (k) {
+      var g = groups[k], subs = [];
+      if (k === 'Ingresos' && g.value === 0) subs.push('aún sin ingresos registrados');
+      if (g.reint > 0) subs.push('reintegrado: +' + fmt(g.reint));
+      if (ing > 0 && (k === 'Gastos' || k === 'Ahorro' || k === 'Provisión')) subs.push((Math.abs(g.value) / ing * 100).toFixed(1) + '% del ingreso');
+      return { key: k, label: k === 'Gastos' ? 'Gastos (sin ahorro)' : k, value: g.value, sub: subs.join(' · ') };
+    });
+    tiles.push({ key: '', label: 'Saldo', value: saldo, sub: 'después de ahorro y provisión' });
     var row = document.getElementById('kpi-row');
-    row.innerHTML = tiles.map(function (t) {
-      var cls = t.value >= 0 ? 'pos' : 'neg';
-      var tileCls = t.value >= 0 ? 'pos-tile' : 'neg-tile';
-      var sub = t.reintegro > 0 ? '<div class="sub">reintegrado: +' + fmt(t.reintegro) + '</div>' : '';
-      return '<div class="kpi-tile clickable ' + tileCls + '" data-naturaleza="' + t.naturaleza + '"><div class="label">' + t.label + '</div>' +
+    row.innerHTML = tiles.map(function (t, i) {
+      var neutral = t.key === 'Ahorro' || t.key === 'Provisión';
+      var cls = neutral ? '' : (t.value >= 0 ? 'pos' : 'neg');
+      var tileCls = neutral ? '' : (t.value >= 0 ? 'pos-tile' : 'neg-tile');
+      var style = neutral ? ' style="border-left-color:' + (t.key === 'Ahorro' ? 'var(--cat-ahorro)' : 'var(--cat-provision)') + '"' : '';
+      var sub = t.sub ? '<div class="sub">' + t.sub + '</div>' : '';
+      return '<div class="kpi-tile clickable ' + tileCls + '" data-i="' + i + '"' + style + '><div class="label">' + esc(t.label) + '</div>' +
         '<div class="value ' + cls + '">' + fmt(t.value) + '</div>' + sub + '</div>';
     }).join('');
     row.querySelectorAll('.kpi-tile').forEach(function (el) {
       el.addEventListener('click', function () {
-        var nat = el.dataset.naturaleza;
-        var subset = nat ? getFiltered().filter(function (r) { return r.naturaleza === nat; }) : getFiltered();
-        openDrillDown(nat ? 'Naturaleza: ' + nat : 'Saldo — todos los movimientos', subset);
+        var t = tiles[+el.dataset.i];
+        var all = getDetalleRows();
+        var subset = !t.key ? all : all.filter(function (r) {
+          if (t.key === 'Gastos') return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo';
+          if (t.key === 'Ahorro') return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) === 'ahorroActivo';
+          return r.naturaleza === t.key;
+        });
+        openDrillDown(t.key ? t.label : 'Saldo — todos los movimientos', subset);
       });
     });
   }
 
-  // ---------- line chart: cumulative balance ----------
+  // ---------- proyección de cierre del mes en curso ----------
+  function renderProyeccion() {
+    var panel = document.getElementById('panel-proyeccion');
+    var body = document.getElementById('proyeccion-body');
+    var lbl = document.getElementById('proj-month-label');
+    if (!panel || !body) return;
+    var cur = rows.filter(function (r) {
+      return isCurrentMonth(r.anio, r.mes) && r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo';
+    });
+    var hasBud = budgetRows.some(function (b) { return isCurrentMonth(b.anio, b.mes); });
+    if (!cur.length || !hasBud) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    var t = new Date();
+    var dim = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate();
+    var frac = t.getDate() / dim;
+    lbl.textContent = '— ' + monthLabel(String(t.getFullYear()), t.getMonth() + 1) + ' · día ' + t.getDate() + ' de ' + dim;
+
+    var real = {}, bud = {};
+    cur.forEach(function (r) { real[r.categoria] = (real[r.categoria] || 0) + Math.abs(r.importe); });
+    budgetRows.forEach(function (b) {
+      if (!isCurrentMonth(b.anio, b.mes) || tipoLado(b.tipo) !== 'Gastos' || tipoBucket(b.tipo) === 'ahorroActivo') return;
+      bud[b.categoria] = (bud[b.categoria] || 0) + Math.abs(b.presupuesto);
+    });
+    var names = Array.from(new Set(Object.keys(real).concat(Object.keys(bud))));
+    var totReal = 0, totBud = 0, totProj = 0, risks = [];
+    names.forEach(function (n) {
+      var r0 = real[n] || 0, b0 = bud[n] || 0;
+      var fija = CATEGORIAS_FIJAS.indexOf(n) > -1;
+      var proj = fija ? Math.max(r0, b0) : (frac > 0 ? r0 / frac : r0);
+      totReal += r0; totBud += b0; totProj += proj;
+      if (b0 > 0 && proj > b0 * 1.0001 && (!fija || r0 > b0)) risks.push({ cat: n, proj: proj, bud: b0 });
+    });
+    risks.sort(function (a, b) { return (b.proj - b.bud) - (a.proj - a.bud); });
+
+    var over = totBud > 0 && totProj > totBud;
+    var color = over ? cssVar('--status-crit') : cssVar('--status-good');
+    var maxV = Math.max(totBud, totProj, totReal) * 1.05 || 1;
+    var wReal = totReal / maxV * 100, wExt = Math.max(0, (totProj - totReal) / maxV * 100), pBud = totBud / maxV * 100;
+    var pctProj = totBud ? totProj / totBud * 100 : null;
+
+    var html = '<div class="glance-summary">' +
+      chip('Gastado a hoy', fmt(totReal), totBud ? (Math.round(totReal / totBud * 100) + '% del presupuesto') : '') +
+      chip('Proyección al cierre', '<span style="color:' + color + '">' + fmt(totProj) + '</span>', pctProj !== null ? (pctProj.toFixed(0) + '% del presupuesto') : '') +
+      chip('Presupuesto del mes', fmt(totBud), '') + '</div>' +
+      '<div class="proj-track"><div class="proj-fill" style="width:' + wReal.toFixed(1) + '%"></div>' +
+      '<div class="proj-ext" style="left:' + wReal.toFixed(1) + '%;width:' + wExt.toFixed(1) + '%"></div>' +
+      '<div class="proj-bud" style="left:' + pBud.toFixed(1) + '%"></div></div>' +
+      '<div class="proj-legend"><span><span style="color:var(--series-pos)">▮</span> Gastado a hoy</span>' +
+      '<span><span style="color:var(--series-proj)">▮</span> Proyección al cierre</span><span>│ Presupuesto</span></div>' +
+      '<p class="hint" style="margin:10px 0 6px;">Al ritmo actual cerrarías el mes con un gasto de <strong>' + fmt(totProj) + '</strong>' +
+      (pctProj !== null ? ', el <strong>' + pctProj.toFixed(0) + '%</strong> del presupuesto (' + fmt(totBud) + ').' : '.') + '</p>';
+    if (risks.length) {
+      html += '<div class="filter-label" style="margin:8px 0 2px;">Categorías que superarían su presupuesto</div>' +
+        risks.slice(0, 5).map(function (x) {
+          return '<div class="proj-risk"><span>' + esc(x.cat) + '</span><span class="num">proyectado ' + fmt(x.proj) + ' vs presup. ' + fmt(x.bud) +
+            ' <b style="color:var(--status-crit)">(+' + fmt(x.proj - x.bud) + ')</b></span></div>';
+        }).join('');
+    } else {
+      html += '<p class="hint">Ninguna categoría superaría su presupuesto al ritmo actual.</p>';
+    }
+    html += '<p class="hint" style="margin-top:10px;">Método: los gastos variables se proyectan al ritmo del mes (gasto a hoy ÷ parte del mes transcurrida); los fijos' +
+      (CATEGORIAS_FIJAS.length ? ' (' + esc(CATEGORIAS_FIJAS.join(', ')) + ')' : '') + ' se dan por completos. No incluye ahorro ni provisión.' +
+      (t.getDate() < 5 ? ' Estimación poco fiable: estamos en los primeros días del mes.' : '') + '</p>';
+    body.innerHTML = html;
+  }
+
+  // ---------- línea: flujo acumulado (histórico) ----------
+  function niceTicks(min, max, count) {
+    if (min === max) max = min + 1;
+    var span = max - min, rawStep = span / count;
+    var mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    var norm = rawStep / mag;
+    var step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+    var start = Math.floor(min / step) * step, end = Math.ceil(max / step) * step;
+    var ticks = [];
+    for (var v = start; v <= end + step / 2; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
+    return ticks;
+  }
+
   function renderLineChart(data) {
     var svg = document.getElementById('chart-line');
     var tooltip = document.getElementById('tooltip-line');
+    var xl = document.getElementById('line-x-labels');
     svg.innerHTML = '';
+    if (xl) xl.innerHTML = '';
     var dated = data.filter(function (r) { return r.fecha; }).sort(function (a, b) { return a.fecha - b.fecha; });
     if (!dated.length) { return; }
     var cum = 0;
     var pts = dated.map(function (r) { cum += r.importe; return { x: r.fecha, y: cum, r: r }; });
 
-    var W = 900, H = 260, padL = 50, padR = 10, padT = 10, padB = 24;
+    var W = 900, H = 260, padL = 56, padR = 10, padT = 10, padB = 10;
     var minX = pts[0].x.getTime(), maxX = pts[pts.length - 1].x.getTime();
     var ys = pts.map(function (p) { return p.y; });
-    var minY = Math.min(0, Math.min.apply(null, ys));
-    var maxY = Math.max(0, Math.max.apply(null, ys));
+    var ticks = niceTicks(Math.min(0, Math.min.apply(null, ys)), Math.max(0, Math.max.apply(null, ys)), 4);
+    var minY = ticks[0], maxY = ticks[ticks.length - 1];
     if (minY === maxY) { maxY += 1; }
     var sx = function (x) { return padL + (maxX === minX ? 0 : (x - minX) / (maxX - minX)) * (W - padL - padR); };
     var sy = function (y) { return H - padB - ((y - minY) / (maxY - minY)) * (H - padT - padB); };
 
     var ns = 'http://www.w3.org/2000/svg';
-    for (var i = 0; i <= 4; i++) {
-      var gy = padT + (i / 4) * (H - padT - padB);
+    ticks.forEach(function (tv) {
+      var gy = sy(tv);
       var line = document.createElementNS(ns, 'line');
       line.setAttribute('x1', padL); line.setAttribute('x2', W - padR);
       line.setAttribute('y1', gy); line.setAttribute('y2', gy);
       line.setAttribute('class', 'gridline');
       svg.appendChild(line);
-      var val = maxY - (i / 4) * (maxY - minY);
       var lbl = document.createElementNS(ns, 'text');
       lbl.setAttribute('x', 4); lbl.setAttribute('y', gy + 3);
       lbl.setAttribute('class', 'axis-label');
-      lbl.textContent = Math.round(val).toLocaleString('es-PE');
+      lbl.textContent = Math.round(tv).toLocaleString('es-PE');
       svg.appendChild(lbl);
-    }
+    });
 
     var zy = sy(0);
     if (zy < H - padB) {
@@ -1283,11 +1454,6 @@
     base.setAttribute('stroke-width', '1.5');
     base.setAttribute('stroke-dasharray', '4,3');
     svg.appendChild(base);
-    var zeroLbl = document.createElementNS(ns, 'text');
-    zeroLbl.setAttribute('x', 4); zeroLbl.setAttribute('y', zy - 4);
-    zeroLbl.setAttribute('class', 'axis-label'); zeroLbl.setAttribute('font-weight', '700');
-    zeroLbl.textContent = '0';
-    svg.appendChild(zeroLbl);
 
     var d = pts.map(function (p, i) {
       return (i === 0 ? 'M' : 'L') + sx(p.x.getTime()).toFixed(1) + ',' + sy(p.y).toFixed(1);
@@ -1336,9 +1502,10 @@
     hit.setAttribute('x', padL); hit.setAttribute('y', padT);
     hit.setAttribute('width', W - padL - padR); hit.setAttribute('height', H - padT - padB);
     hit.setAttribute('fill', 'transparent');
+    hit.style.touchAction = 'pan-y';
     svg.appendChild(hit);
 
-    hit.addEventListener('mousemove', function (evt) {
+    function showAt(evt) {
       var rect = svg.getBoundingClientRect();
       var mx = (evt.clientX - rect.left) * (W / rect.width);
       var targetX = minX + ((mx - padL) / (W - padL - padR)) * (maxX - minX);
@@ -1353,27 +1520,45 @@
       tooltip.style.left = (cx / W * 100) + '%';
       tooltip.style.top = Math.max(0, cy - 50) + 'px';
       tooltip.innerHTML = '<strong>' + nearest.x.toLocaleDateString('es-PE') + '</strong><br/>Acumulado: ' + fmt(nearest.y);
-    });
-    hit.addEventListener('mouseleave', function () {
+    }
+    function hideTip() {
       hoverCircle.setAttribute('opacity', '0');
       crosshair.setAttribute('opacity', '0');
       tooltip.style.opacity = '0';
-    });
+    }
+    // pointer events: funcionan con mouse y con el dedo
+    hit.addEventListener('pointermove', showAt);
+    hit.addEventListener('pointerdown', showAt);
+    hit.addEventListener('pointerleave', hideTip);
+
+    if (xl) {
+      var nLab = 5, spans = [];
+      for (var i = 0; i < nLab; i++) {
+        var tms = minX + (maxX - minX) * i / (nLab - 1);
+        var dt = new Date(tms);
+        spans.push('<span>' + MESES_SHORT[dt.getMonth()] + " '" + String(dt.getFullYear()).slice(-2) + '</span>');
+      }
+      xl.innerHTML = spans.join('');
+      xl.style.paddingLeft = (padL / W * 100) + '%';
+      xl.style.paddingRight = (padR / W * 100) + '%';
+    }
   }
 
-  // ---------- bar chart: gastos por tipo ----------
+  // ---------- barras: gastos por tipo ----------
   function renderBarChart(data) {
     var svg = document.getElementById('chart-bar');
     var tooltip = document.getElementById('tooltip-bar');
     svg.innerHTML = '';
-    var byCat = {};
+    var byCat = {}, total = 0;
     data.filter(function (r) { return r.naturaleza === 'Gastos'; }).forEach(function (r) {
-      byCat[r.tipo] = (byCat[r.tipo] || 0) + Math.abs(r.importe);
+      var v = Math.abs(r.importe);
+      byCat[r.tipo] = (byCat[r.tipo] || 0) + v;
+      total += v;
     });
     var entries = Object.keys(byCat).map(function (k) { return { name: k, value: byCat[k] }; })
       .sort(function (a, b) { return b.value - a.value; }).slice(0, 8);
     if (!entries.length) return;
-    var W = 900, rowH = 30, padL = 150, padR = 70, padT = 6;
+    var W = 900, rowH = 30, padL = 150, padR = 150, padT = 6;
     var H = padT + entries.length * rowH + 6;
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     var maxV = Math.max.apply(null, entries.map(function (e) { return e.value; }));
@@ -1381,6 +1566,9 @@
     entries.forEach(function (e, i) {
       var y = padT + i * rowH;
       var barW = (e.value / maxV) * (W - padL - padR);
+      var bk = tipoBucket(e.name);
+      var col = bk === 'necesidades' ? cssVar('--cat-necesidad') : bk === 'deseos' ? cssVar('--cat-deseo') :
+        bk === 'ahorroActivo' ? cssVar('--cat-ahorro') : cssVar('--text-muted');
       var label = document.createElementNS(ns, 'text');
       label.setAttribute('x', padL - 8); label.setAttribute('y', y + rowH / 2 + 4);
       label.setAttribute('text-anchor', 'end'); label.setAttribute('class', 'axis-label');
@@ -1391,10 +1579,10 @@
       bar.setAttribute('x', padL); bar.setAttribute('y', y + 6);
       bar.setAttribute('width', Math.max(2, barW)); bar.setAttribute('height', rowH - 14);
       bar.setAttribute('rx', 3);
-      bar.setAttribute('fill', cssVar('--series-neg'));
+      bar.setAttribute('fill', col);
       bar.setAttribute('class', 'clickable');
       bar.addEventListener('click', function () {
-        var subset = getFiltered().filter(function (r) { return r.naturaleza === 'Gastos' && r.tipo === e.name; });
+        var subset = getDetalleRows().filter(function (r) { return r.naturaleza === 'Gastos' && r.tipo === e.name; });
         openDrillDown('Gastos — Tipo: ' + e.name, subset);
       });
       svg.appendChild(bar);
@@ -1402,7 +1590,7 @@
       var val = document.createElementNS(ns, 'text');
       val.setAttribute('x', padL + barW + 6); val.setAttribute('y', y + rowH / 2 + 4);
       val.setAttribute('class', 'axis-label'); val.setAttribute('fill', cssVar('--text-secondary'));
-      val.textContent = fmt(e.value);
+      val.textContent = fmt(e.value) + (total ? '  ·  ' + (e.value / total * 100).toFixed(0) + '%' : '');
       svg.appendChild(val);
 
       bar.addEventListener('mousemove', function (evt) {
@@ -1410,16 +1598,16 @@
         tooltip.style.opacity = '1';
         tooltip.style.left = ((evt.clientX - rect.left)) + 'px';
         tooltip.style.top = ((evt.clientY - rect.top) - 30) + 'px';
-        tooltip.innerHTML = '<strong>' + e.name + '</strong><br/>' + fmt(e.value);
+        tooltip.innerHTML = '<strong>' + esc(e.name) + '</strong><br/>' + fmt(e.value);
       });
       bar.addEventListener('mouseleave', function () { tooltip.style.opacity = '0'; });
     });
   }
 
-  // ---------- categoría / subcategoría tables ----------
+  // ---------- categoría / subcategoría (solo gasto, sin ahorro) ----------
   function aggregateBy(data, field) {
     var byKey = {};
-    data.filter(function (r) { return r.naturaleza === 'Gastos'; }).forEach(function (r) {
+    data.filter(function (r) { return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo'; }).forEach(function (r) {
       byKey[r[field]] = (byKey[r[field]] || 0) + Math.abs(r.importe);
     });
     return Object.keys(byKey).map(function (k) { return { name: k, value: byKey[k] }; })
@@ -1427,54 +1615,56 @@
   }
 
   function renderCatTable(data) {
-    var entries = aggregateBy(data, 'categoria').slice(0, 12);
+    var entries = aggregateBy(data, 'categoria');
     var tbody = document.querySelector('#table-cat tbody');
     tbody.innerHTML = entries.map(function (e) {
-      return '<tr class="clickable" data-name="' + e.name.replace(/"/g, '&quot;') + '"><td>' + e.name + '</td><td>' + fmt(e.value) + '</td></tr>';
+      return '<tr class="clickable" data-name="' + esc(e.name) + '"><td>' + esc(e.name) + '</td><td>' + fmt(e.value) + '</td></tr>';
     }).join('') || '<tr><td colspan="2">Sin gastos en el periodo filtrado.</td></tr>';
     tbody.querySelectorAll('tr[data-name]').forEach(function (tr) {
       tr.addEventListener('click', function () {
-        var subset = getFiltered().filter(function (r) { return r.naturaleza === 'Gastos' && r.categoria === tr.dataset.name; });
+        var subset = getDetalleRows().filter(function (r) { return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo' && r.categoria === tr.dataset.name; });
         openDrillDown('Gastos — Categoría: ' + tr.dataset.name, subset);
       });
     });
   }
 
   function renderSubcatTable(data) {
-    var entries = aggregateBy(data, 'subcategoria').slice(0, 12);
+    var entries = aggregateBy(data, 'subcategoria');
     var tbody = document.querySelector('#table-subcat tbody');
     tbody.innerHTML = entries.map(function (e) {
       var recurrente = recurringSubcatNames.has(e.name) ? '<span class="badge">⚠</span> ' : '';
-      return '<tr class="clickable" data-name="' + e.name.replace(/"/g, '&quot;') + '"><td>' + recurrente + e.name + '</td><td>' + fmt(e.value) + '</td></tr>';
+      return '<tr class="clickable" data-name="' + esc(e.name) + '"><td>' + recurrente + esc(e.name) + '</td><td>' + fmt(e.value) + '</td></tr>';
     }).join('') || '<tr><td colspan="2">Sin gastos en el periodo filtrado.</td></tr>';
     tbody.querySelectorAll('tr[data-name]').forEach(function (tr) {
       tr.addEventListener('click', function () {
-        var subset = getFiltered().filter(function (r) { return r.naturaleza === 'Gastos' && r.subcategoria === tr.dataset.name; });
+        var subset = getDetalleRows().filter(function (r) { return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo' && r.subcategoria === tr.dataset.name; });
         openDrillDown('Gastos — Subcategoría: ' + tr.dataset.name, subset);
       });
     });
   }
 
-  // ---------- recurring expenses ----------
+  // ---------- gastos recurrentes (histórico, sin ahorro) ----------
   var recurringCache = [];
   var recurringSort = { key: 'impact', dir: 'desc' };
   var recurringSubcatNames = new Set();
 
   function renderRecurring(dataAllMonths) {
     var groups = {};
-    dataAllMonths.filter(function (r) { return r.naturaleza === 'Gastos'; }).forEach(function (r) {
+    dataAllMonths.filter(function (r) { return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo'; }).forEach(function (r) {
       var key = r.subcategoria;
-      if (!groups[key]) groups[key] = { months: new Set(), amounts: [], last: null, lastComment: '' };
+      if (!groups[key]) groups[key] = { monthTotals: {}, amounts: [], last: null };
       var g = groups[key];
       var monthKey = r.anio + '-' + r.mes;
-      g.months.add(monthKey);
-      g.amounts.push(Math.abs(r.importe));
-      if (!g.last || (r.fecha && r.fecha > g.last)) { g.last = r.fecha; g.lastComment = r.comentario; }
+      var v = Math.abs(r.importe);
+      g.monthTotals[monthKey] = (g.monthTotals[monthKey] || 0) + v;
+      g.amounts.push(v);
+      if (!g.last || (r.fecha && r.fecha > g.last)) { g.last = r.fecha; }
     });
     recurringCache = Object.keys(groups).map(function (k) {
       var g = groups[k];
-      var avg = g.amounts.reduce(function (s, v) { return s + v; }, 0) / g.amounts.length;
-      return { name: k, months: g.months.size, avg: avg, impact: avg, last: g.last };
+      var total = g.amounts.reduce(function (s, v) { return s + v; }, 0);
+      var months = Object.keys(g.monthTotals).length;
+      return { name: k, months: months, avg: total / g.amounts.length, impact: total / months, last: g.last };
     }).filter(function (g) { return g.months >= 3; });
     recurringSubcatNames = new Set(recurringCache.map(function (g) { return g.name; }));
     renderRecurringTable();
@@ -1492,13 +1682,13 @@
     });
     var tbody = document.querySelector('#table-recurring tbody');
     tbody.innerHTML = list.map(function (g) {
-      return '<tr class="clickable" data-name="' + g.name.replace(/"/g, '&quot;') + '"><td><span class="badge">⚠ recurrente</span> ' + g.name + '</td><td>' + g.months + '</td>' +
+      return '<tr class="clickable" data-name="' + esc(g.name) + '"><td><span class="badge">⚠ recurrente</span> ' + esc(g.name) + '</td><td>' + g.months + '</td>' +
         '<td>' + fmt(g.avg) + '</td><td>' + fmt(g.impact) + '</td>' +
         '<td>' + (g.last ? g.last.toLocaleDateString('es-PE') : '—') + '</td></tr>';
     }).join('') || '<tr><td colspan="5">No se detectaron patrones recurrentes con los datos/filtros actuales.</td></tr>';
     tbody.querySelectorAll('tr[data-name]').forEach(function (tr) {
       tr.addEventListener('click', function () {
-        var subset = getFilteredExceptMonth().filter(function (r) { return r.naturaleza === 'Gastos' && r.subcategoria === tr.dataset.name; });
+        var subset = getFilteredExceptMonth().filter(function (r) { return r.naturaleza === 'Gastos' && tipoBucket(r.tipo) !== 'ahorroActivo' && r.subcategoria === tr.dataset.name; });
         openDrillDown('Gasto recurrente — ' + tr.dataset.name, subset);
       });
     });
@@ -1519,92 +1709,6 @@
   });
   document.getElementById('recurring-filter').addEventListener('input', renderRecurringTable);
 
-  // ---------- weekly projection ----------
-  function isoWeekKey(date) {
-    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    var dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return d.getUTCFullYear() + '-W' + String(weekNo).padStart(2, '0');
-  }
-  function weekStart(date) {
-    var d = new Date(date);
-    var day = d.getDay();
-    var diff = (day === 0 ? -6 : 1) - day;
-    d.setDate(d.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-
-  function renderWeeklyProjection(data) {
-    var svg = document.getElementById('chart-weekly');
-    var tooltip = document.getElementById('tooltip-weekly');
-    svg.innerHTML = '';
-    var dated = data.filter(function (r) { return r.fecha; });
-    if (!dated.length) return;
-    var byWeek = {};
-    dated.forEach(function (r) {
-      var key = isoWeekKey(r.fecha);
-      if (!byWeek[key]) byWeek[key] = { total: 0, start: weekStart(r.fecha) };
-      byWeek[key].total += r.importe;
-    });
-    var weeks = Object.keys(byWeek).map(function (k) { return { key: k, total: byWeek[k].total, start: byWeek[k].start }; })
-      .sort(function (a, b) { return a.start - b.start; });
-    var recent = weeks.slice(-8);
-    if (!recent.length) return;
-    var avg = recent.reduce(function (s, w) { return s + w.total; }, 0) / recent.length;
-    var lastStart = recent[recent.length - 1].start;
-    var projected = [];
-    for (var i = 1; i <= 4; i++) {
-      var ns2 = new Date(lastStart); ns2.setDate(ns2.getDate() + 7 * i);
-      projected.push({ key: 'P' + i, total: avg, start: ns2, projected: true });
-    }
-    var all = recent.concat(projected);
-
-    var W = 900, H = 260, padL = 50, padR = 10, padT = 10, padB = 30;
-    var ns = 'http://www.w3.org/2000/svg';
-    var maxAbs = Math.max.apply(null, all.map(function (w) { return Math.abs(w.total); }).concat([1]));
-    var barW = (W - padL - padR) / all.length;
-    var zy = padT + (H - padT - padB) / 2;
-
-    var base = document.createElementNS(ns, 'line');
-    base.setAttribute('x1', padL); base.setAttribute('x2', W - padR);
-    base.setAttribute('y1', zy); base.setAttribute('y2', zy);
-    base.setAttribute('class', 'baseline');
-    svg.appendChild(base);
-
-    all.forEach(function (w, i) {
-      var h = (Math.abs(w.total) / maxAbs) * ((H - padT - padB) / 2 - 4);
-      var x = padL + i * barW + barW * 0.15;
-      var bw = barW * 0.7;
-      var y = w.total >= 0 ? zy - h : zy;
-      var rect = document.createElementNS(ns, 'rect');
-      rect.setAttribute('x', x); rect.setAttribute('y', y);
-      rect.setAttribute('width', bw); rect.setAttribute('height', Math.max(1, h));
-      rect.setAttribute('rx', 2);
-      rect.setAttribute('fill', w.total >= 0 ? cssVar('--series-pos') : cssVar('--series-neg'));
-      rect.setAttribute('opacity', w.projected ? '0.55' : '1');
-      if (w.projected) rect.setAttribute('stroke-dasharray', '3,2'), rect.setAttribute('stroke', cssVar('--text-muted')), rect.setAttribute('stroke-width', '1');
-      svg.appendChild(rect);
-
-      var lbl = document.createElementNS(ns, 'text');
-      lbl.setAttribute('x', x + bw / 2); lbl.setAttribute('y', H - padB + 14);
-      lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('class', 'axis-label');
-      lbl.textContent = (w.projected ? 'Proy ' : '') + w.start.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
-      svg.appendChild(lbl);
-
-      rect.addEventListener('mousemove', function (evt) {
-        var svgRect = svg.getBoundingClientRect();
-        tooltip.style.opacity = '1';
-        tooltip.style.left = ((evt.clientX - svgRect.left)) + 'px';
-        tooltip.style.top = ((evt.clientY - svgRect.top) - 30) + 'px';
-        tooltip.innerHTML = '<strong>' + (w.projected ? 'Proyectado — ' : '') + w.start.toLocaleDateString('es-PE') + '</strong><br/>Neto: ' + fmt(w.total);
-      });
-      rect.addEventListener('mouseleave', function () { tooltip.style.opacity = '0'; });
-    });
-  }
-
   // ---------- real vs budget por categoría (Ingresos y Gastos, cada uno con su propia tabla) ----------
   // En BD BGT la columna Naturaleza siempre dice "Presupuesto" (sea ingreso o gasto);
   // lo que distingue el lado es el prefijo del Tipo ("I." = ingreso, "G." = gasto).
@@ -1624,7 +1728,7 @@
         realByCat[r.categoria] = (realByCat[r.categoria] || 0) + Math.abs(r.importe);
       });
       var budgetByCat = {};
-      getBudgetFiltered().filter(function (b) { return tipoLado(b.tipo) === naturalezaValue; }).forEach(function (b) {
+      getDetalleBudget().filter(function (b) { return tipoLado(b.tipo) === naturalezaValue; }).forEach(function (b) {
         budgetByCat[b.categoria] = (budgetByCat[b.categoria] || 0) + Math.abs(b.presupuesto);
       });
       var names = Array.from(new Set(Object.keys(realByCat).concat(Object.keys(budgetByCat))));
@@ -1683,13 +1787,22 @@
   }
 
   // ---------- comparativo mensual ----------
+  var monthlyScrolledOnce = false;
+  function scrollMonthlyToEnd(force) {
+    var els = document.querySelectorAll('.monthly-table-scroll');
+    if (!els.length || (!force && monthlyScrolledOnce)) return;
+    if (!els[0].scrollWidth) return; // pestaña oculta: se reintenta al abrir Detalle
+    els.forEach(function (el) { el.scrollLeft = el.scrollWidth; });
+    monthlyScrolledOnce = true;
+  }
+
   function renderMonthly() {
+    var t = new Date(), nowKey = t.getFullYear() * 100 + (t.getMonth() + 1);
     var months = Array.from(new Set(budgetRows.map(function (b) { return b.anio + '|' + b.mes; })))
       .map(function (k) { var parts = k.split('|'); return { anio: parts[0], mes: parts[1] }; })
+      .filter(function (m) { return parseInt(m.anio, 10) * 100 + parseInt(m.mes, 10) <= nowKey; })
       .sort(function (a, b) { return (parseInt(a.anio, 10) * 100 + parseInt(a.mes, 10)) - (parseInt(b.anio, 10) * 100 + parseInt(b.mes, 10)); });
-    var shown = months.slice(-12);
-    var truncatedNote = months.length > shown.length
-      ? '<p class="hint">Mostrando los últimos ' + shown.length + ' meses de ' + months.length + ' disponibles.</p>' : '';
+    var shown = months;
 
     var realByKey = {};
     rows.filter(function (r) { return r.naturaleza === 'Gastos' || r.naturaleza === 'Ingresos'; }).forEach(function (r) {
@@ -1699,6 +1812,7 @@
     var budgetByKey = {};
     var catsByTipo = {};
     budgetRows.forEach(function (b) {
+      if (!budgetNotFuture(b)) return;
       if (filterSelections.tipo.size && !filterSelections.tipo.has(b.tipo)) return;
       if (filterSelections.categoria.size && !filterSelections.categoria.has(b.categoria)) return;
       var k = b.anio + '|' + b.mes + '|' + b.categoria;
@@ -1708,15 +1822,17 @@
     });
 
     var wrap = document.getElementById('monthly-wrap');
-    var html = truncatedNote;
+    var first = wrap.querySelector('.monthly-table-scroll');
+    var prevLeft = first && first.scrollWidth > 0 ? first.scrollLeft : null;
+    var html = '';
     Object.keys(catsByTipo).sort().forEach(function (tipo) {
       var cats = Array.from(catsByTipo[tipo]).sort();
-      html += '<details class="monthly-group" open><summary>' + tipo + '</summary>';
+      html += '<details class="monthly-group" open><summary>' + esc(tipo) + '</summary>';
       html += '<div class="monthly-table-scroll">';
       html += '<table class="monthly-table"><thead><tr><th>Categoría</th>' +
-        shown.map(function (m) { return '<th>' + m.mes + ' ' + m.anio + '</th>'; }).join('') + '</tr></thead><tbody>';
+        shown.map(function (m) { return '<th>' + esc(mesCorto(m.mes)) + ' ' + esc(m.anio) + '</th>'; }).join('') + '</tr></thead><tbody>';
       cats.forEach(function (cat) {
-        html += '<tr><td>' + cat + '</td>' + shown.map(function (m) {
+        html += '<tr><td>' + esc(cat) + '</td>' + shown.map(function (m) {
           var k = m.anio + '|' + m.mes + '|' + cat;
           var real = realByKey[k] || 0;
           var presupuesto = budgetByKey[k] || 0;
@@ -1727,6 +1843,12 @@
       html += '</tbody></table></div></details>';
     });
     wrap.innerHTML = html || '<p class="hint">Sin datos de presupuesto para mostrar.</p>';
+    if (prevLeft !== null) {
+      wrap.querySelectorAll('.monthly-table-scroll').forEach(function (el) { el.scrollLeft = prevLeft; });
+    } else {
+      monthlyScrolledOnce = false;
+      scrollMonthlyToEnd(false);
+    }
   }
 
   // ---------- resumen ejecutivo: tasa de ahorro ----------
@@ -1966,11 +2088,16 @@
   // ---------- raw table ----------
   function renderRawTable(data) {
     var tbody = document.querySelector('#table-raw tbody');
-    var sorted = data.slice().sort(function (a, b) { return (b.fecha || 0) - (a.fecha || 0); }).slice(0, 300);
+    var sortedAll = data.slice().sort(function (a, b) { return (b.fecha || 0) - (a.fecha || 0); });
+    var sorted = sortedAll.slice(0, 300);
+    var cnt = document.getElementById('raw-count');
+    if (cnt) cnt.textContent = sortedAll.length > sorted.length
+      ? 'Mostrando los ' + sorted.length + ' más recientes de ' + sortedAll.length + ' movimientos del periodo. Para ver el resto usa Filtros o los paneles de arriba (click en una fila).'
+      : sortedAll.length + ' movimientos del periodo.';
     tbody.innerHTML = sorted.map(function (r) {
       return '<tr><td>' + (r.fecha ? r.fecha.toLocaleDateString('es-PE') : '—') + '</td>' +
-        '<td>' + r.naturaleza + '</td><td>' + r.categoria + '</td><td>' + r.subcategoria + '</td>' +
-        '<td>' + fmt(r.importe) + '</td><td>' + r.comentario + '</td></tr>';
+        '<td>' + esc(r.naturaleza) + '</td><td>' + esc(r.categoria) + '</td><td>' + esc(r.subcategoria) + '</td>' +
+        '<td>' + fmt(r.importe) + '</td><td>' + esc(r.comentario) + '</td></tr>';
     }).join('') || '<tr><td colspan="6">Sin movimientos en el periodo filtrado.</td></tr>';
   }
 
@@ -2259,6 +2386,16 @@
     if (td) td.addEventListener('click', function () {
       var box = document.getElementById('data-panel');
       box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+    });
+  })();
+  // botones de periodo de Detalle (Mes actual / Año actual / Todo el histórico)
+  (function initPeriodChips() {
+    document.querySelectorAll('#period-chips .chip-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (filterSelections.mes.size) { filterSelections.mes.clear(); if (rows.length) buildMultiselect('mes'); }
+        detallePeriodo = btn.dataset.p;
+        if (rows.length) render();
+      });
     });
   })();
 })();
