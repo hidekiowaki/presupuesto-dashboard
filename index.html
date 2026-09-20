@@ -373,13 +373,13 @@
       <div class="load-row">
         <label class="file-btn" for="csv-input">📂 Cargar CSV (BD I&amp;E)</label>
         <input type="file" id="csv-input" accept=".csv" />
-        <input type="text" id="url-input" placeholder="o pega aquí el link de un CSV publicado en la Web (opcional)" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSv_A7_-vPW0z1qpWaJz8ic4He0ajRPle_OZSs5NDhckKWYR_vFFlPutJ4IXz6GhsuSRwjlAYsTJmwj/pub?gid=483317118&amp;single=true&amp;output=csv" />
+        <input type="text" id="url-input" placeholder="Pega aquí el link CSV publicado de BD I&amp;E" />
         <button id="url-load-btn" class="secondary">Actualizar desde URL</button>
       </div>
       <div class="load-row" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
         <label class="file-btn" for="budget-csv-input">📂 Cargar CSV (Presupuesto)</label>
         <input type="file" id="budget-csv-input" accept=".csv" />
-        <input type="text" id="budget-url-input" placeholder="Link CSV de Presupuesto (BD BGT)" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vSv_A7_-vPW0z1qpWaJz8ic4He0ajRPle_OZSs5NDhckKWYR_vFFlPutJ4IXz6GhsuSRwjlAYsTJmwj/pub?gid=1630019213&amp;single=true&amp;output=csv" />
+        <input type="text" id="budget-url-input" placeholder="Pega aquí el link CSV publicado de BD BGT (Presupuesto)" />
         <button id="budget-load-btn" class="secondary">Actualizar desde URL</button>
       </div>
       <div class="status-line" id="budget-status-line">Presupuesto no cargado — habilita las vistas de Real vs Budget y Mensual.</div>
@@ -902,6 +902,7 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
     }).then(function (text) {
+      saveUrl(URL_KEY_BUDGET, url);
       onBudgetLoaded(text, 'URL publicada');
     }).catch(function (err) {
       budgetStatusLine.textContent = 'No se pudo cargar desde la URL (' + err.message + '). Usa el botón "Cargar CSV (Presupuesto)" y sube el archivo descargado.';
@@ -933,6 +934,7 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.text();
     }).then(function (text) {
+      saveUrl(URL_KEY_MAIN, url);
       onDataLoaded(text, 'URL publicada');
     }).catch(function (err) {
       statusLine.textContent = 'No se pudo cargar desde la URL (' + err.message + '). Verifica que esté publicada como CSV.';
@@ -946,6 +948,23 @@
     loadMainFromUrl();
     loadBudgetFromUrl();
   }
+  // ---------- links de las hojas: se guardan solo en este navegador (no van en el repo) ----------
+  var URL_KEY_MAIN = 'presupuesto-dashboard-url-main';
+  var URL_KEY_BUDGET = 'presupuesto-dashboard-url-budget';
+  function readSavedUrl(key) {
+    try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+  }
+  function saveUrl(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* localStorage no disponible */ }
+  }
+  urlInput.value = readSavedUrl(URL_KEY_MAIN);
+  budgetUrlInput.value = readSavedUrl(URL_KEY_BUDGET);
+  // Primera vez en este dispositivo: abrir el panel ⚙ para que pegues los links
+  if (!urlInput.value.trim() || !budgetUrlInput.value.trim()) {
+    document.getElementById('data-panel').style.display = 'block';
+    statusLine.textContent = 'Pega los links de tus hojas publicadas (BD I&E y BD BGT) y pulsa "Actualizar desde URL". Se guardan solo en este dispositivo.';
+  }
+
   // Lee las hojas apenas se abre el dashboard (sin tocar botones)
   refreshAll();
   // Vuelve a leerlas cada 5 min mientras la página siga abierta
